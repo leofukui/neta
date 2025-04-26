@@ -1,4 +1,4 @@
-"""Main entry point for NETA."""
+"""Hey NETA"""
 
 import os
 import sys

@@ -1,5 +1,3 @@
-"""Logging utilities for NETA."""
-
 import logging
 import os
 from pathlib import Path

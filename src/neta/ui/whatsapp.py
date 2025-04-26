@@ -1,5 +1,3 @@
-"""WhatsApp UI interaction module for NETA."""
-
 import logging
 import time
 import pyperclip

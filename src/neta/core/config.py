@@ -1,5 +1,3 @@
-"""Configuration management for NETA."""
-
 import json
 import os
 import logging

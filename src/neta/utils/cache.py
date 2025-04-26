@@ -1,5 +1,3 @@
-"""Cache management utilities for NETA."""
-
 import json
 import logging
 import os

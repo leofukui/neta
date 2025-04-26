@@ -1,5 +1,3 @@
-"""AI platform UI interaction module for NETA."""
-
 import logging
 import os
 import time

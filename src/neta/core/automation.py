@@ -1,9 +1,6 @@
-"""Main automation logic for NETA."""
 
-import logging
 import time
 import os
-from pathlib import Path
 
 from ..utils.logging import setup_logger
 from ..utils.cache import MessageCache

@@ -1,5 +1,3 @@
-"""File management utilities for NETA."""
-
 import os
 import time
 import logging
