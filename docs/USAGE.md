@@ -15,7 +15,7 @@ This guide provides detailed instructions for setting up and using NETA, the Wha
    ```
    # Required: Path to Chrome profile (create a dedicated profile)
    CHROME_PROFILE_PATH=/Users/your_username/Library/Application Support/neta-chrome-profile
-   
+
    # Optional: Adjust timing parameters if needed
    RESPONSE_WAIT_TIME_TEXT=2
    RESPONSE_WAIT_TIME_IMAGE=5
@@ -118,7 +118,7 @@ Edit the AI platform UI class to customize how prompts are formatted:
 
 ```python
 # src/neta/ui/ai_platforms.py
-prompt = f"Respond in 50 characters or fewer, if I ask for translation only give me it translated: {message}"
+prompt = f"Respond in 50 characters or fewer, if I ask for translation only give me it translated completely: {message}"
 ```
 
 ### Multiple Configurations

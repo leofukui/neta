@@ -45,7 +45,7 @@ class AIPlatformUI:
         """
         try:
             # Create prompt with character limit guidance
-            prompt = f"Respond in 50 characters or fewer, if I ask for translation only give me it translated. if I mention to be completed can be a comoplete message suitable for whatsapp: {message}"
+            prompt = f"Respond in 50 characters or fewer. If asked for translation, only translate (fully). If asked 'complete', write a full description suitable for whatsapp (no emoji and only ascii chars): {message}"
 
             # Find input field
             input_field = WebDriverWait(self.driver, 10).until(
@@ -106,7 +106,7 @@ class AIPlatformUI:
                 EC.presence_of_element_located((By.CSS_SELECTOR, ai_config["input_selector"]))
             )
 
-            prompt = "Describe this image in 60 characters or fewer (short but give detail as I am trying to get proper info from it), if there is no image and I finish it with 'complete' you can give me a description that is good for a complete whatsapp message about it, if it a image describe what it is, give it back. If I ask for translation never put emoji or any other invalid characters:"
+            prompt = "Describe the image in 60 characters or fewer, with useful detail. If there’s no image and I say 'complete', write a full description suitable for WhatsApp. Do not use emojis or invalid characters (only ascii)."
 
             input_field.click()
             input_field.clear()

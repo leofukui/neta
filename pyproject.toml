@@ -20,7 +20,7 @@ black = "^23.11.0"
 
 [tool.poetry.scripts]
 neta = "neta.main:main"
-format = "black src:main"
+format = "black src:main src"
 lint = "ruff check src:main"
 test = "pytest:main"
 
