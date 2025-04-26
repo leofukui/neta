@@ -1,14 +1,14 @@
 
-import time
 import os
+import time
 
-from ..utils.logging import setup_logger
-from ..utils.cache import MessageCache
-from ..utils.files import ImageManager
 from ..core.config import Config
+from ..ui.ai_platforms import AIPlatformUI
 from ..ui.browser import BrowserManager
 from ..ui.whatsapp import WhatsAppUI
-from ..ui.ai_platforms import AIPlatformUI
+from ..utils.cache import MessageCache
+from ..utils.files import ImageManager
+from ..utils.logging import setup_logger
 
 logger = setup_logger()
 
@@ -33,7 +33,7 @@ class NetaAutomation:
 
         # Set up cache system
         cache_file = os.getenv("CACHE_FILE_PATH", ".cache.json")
-        self..cache.json = MessageCache(cache_file)
+        self.message_cache = MessageCache(cache_file)
         logger.info(f"Initialized message cache: {cache_file}")
 
         # Set up image manager
@@ -135,8 +135,8 @@ class NetaAutomation:
             # Send message and cache sent response
             success = self.whatsapp_ui.send_message(response)
             if success:
-                self..cache.json.cache_content(response, group_name)
-                logger.info(f"Sent and cached response")
+                self.message_cache.cache_content(response, group_name)
+                logger.info("Sent and cached response")
 
             return success
         except Exception as e:
@@ -173,7 +173,7 @@ class NetaAutomation:
                     # Check for new messages in configured groups
                     group_names = list(self.config.get_ai_mappings().keys())
                     group_name, message, message_type = self.whatsapp_ui.get_new_messages(
-                        group_names, self..cache.json
+                        group_names, self.message_cache
                     )
 
                     # Process new message if found

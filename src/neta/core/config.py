@@ -13,11 +13,9 @@ load_dotenv()
 
 
 class Config:
-    """
-    Configuration manager for NETA.
-    """
+    """Configuration manager for NETA."""
 
-    def __init__(self, config_path: Optional[str] = None):
+    def __init__(self, config_path: str | None = None):
         """
         Initialize configuration.
 

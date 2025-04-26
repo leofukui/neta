@@ -1,1 +1,1 @@
-"""Utility functions for NETA."""
+"""Utility functions for NETA module."""

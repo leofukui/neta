@@ -1,8 +1,8 @@
+import hashlib
 import json
 import logging
 import os
 import time
-import hashlib
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -28,7 +28,7 @@ class MessageCache:
             os.makedirs(cache_dir, exist_ok=True)
             logger.info(f"Created cache directory: {cache_dir}")
 
-        self..cache.json = self.load_cache()
+        self.message_cache = self.load_cache()
 
     def load_cache(self):
         """
@@ -40,12 +40,12 @@ class MessageCache:
         try:
             if not os.path.exists(self.cache_file):
                 logger.info(f"Cache file not found at {self.cache_file}, creating new cache file")
-                with open(self.cache_file, 'w') as f:
+                with open(self.cache_file, "w") as f:
                     json.dump({}, f)
                 logger.info(f"Created new cache file at {self.cache_file}")
                 return {}
 
-            with open(self.cache_file, 'r') as f:
+            with open(self.cache_file) as f:
                 cache = json.load(f)
                 logger.info(f"Loaded cache from {self.cache_file} with {len(cache)} entries")
                 return cache
@@ -56,9 +56,9 @@ class MessageCache:
     def save_cache(self):
         """Save message cache to JSON file."""
         try:
-            with open(self.cache_file, 'w') as f:
-                json.dump(self..cache.json, f)
-            logger.info(f"Saved cache to {self.cache_file} with {len(self..cache.json)} entries")
+            with open(self.cache_file, "w") as f:
+                json.dump(self.message_cache, f)
+            logger.info(f"Saved cache to {self.cache_file} with {len(self.message_cache)} entries")
         except Exception as e:
             logger.error(f"Failed to save cache to {self.cache_file}: {e}")
 
@@ -89,7 +89,7 @@ class MessageCache:
         """
         content_key = self.hash_content(content)
         cache_key = f"{group_name}:{content_key}"
-        is_cached = cache_key in self..cache.json
+        is_cached = cache_key in self.message_cache
         logger.debug(f"Checking cache for {cache_key}: {'cached' if is_cached else 'not cached'}")
         return is_cached
 
@@ -106,7 +106,7 @@ class MessageCache:
         """
         content_key = self.hash_content(content)
         cache_key = f"{group_name}:{content_key}"
-        self..cache.json[cache_key] = time.time()
+        self.message_cache[cache_key] = time.time()
         logger.debug(f"Caching content with key: {cache_key}")
         self.save_cache()
         return content_key

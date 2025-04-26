@@ -1,4 +1,4 @@
-"""Hey NETA"""
+"""Main entry point for NETA application."""
 
 import argparse
 import logging
