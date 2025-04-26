@@ -1,0 +1,35 @@
+{
+  "ai_mappings": {
+    "Grok": {
+      "url": "https://grok.x.ai/",
+      "tab_name": "Grok",
+      "input_selector": "textarea[placeholder='Ask Grok anything...']",
+      "response_selector": ".response-message:last-child"
+    },
+    "Capivara": {
+      "url": "https://chat.openai.com/",
+      "tab_name": "ChatGPT",
+      "input_selector": "#prompt-textarea",
+      "response_selector": ".\\@thread-xl\\/thread\\:pt-header-height article:last-of-type div[data-message-author-role='assistant']"
+    },
+    "Gemini": {
+      "url": "https://gemini.google.com/",
+      "tab_name": "Gemini",
+      "input_selector": "input[placeholder='Type your question...']",
+      "response_selector": ".response-container:last-child"
+    },
+    "Claude": {
+      "url": "https://claude.ai/",
+      "tab_name": "Claude",
+      "input_selector": "textarea[placeholder='Talk to Claude...']",
+      "response_selector": ".chat-message:last-child"
+    },
+    "Perplexity": {
+      "url": "https://www.perplexity.ai/",
+      "tab_name": "Perplexity",
+      "input_selector": "textarea[placeholder='Ask anything...']",
+      "response_selector": ".answer-text:last-child"
+    }
+  },
+  "whatsapp_url": "https://web.whatsapp.com/"
+}

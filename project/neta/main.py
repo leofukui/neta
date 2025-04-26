@@ -11,7 +11,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
-from selenium.common.exceptions import TimeoutException, StaleElementReferenceException, NoSuchElementException, ElementClickInterceptedException
+from selenium.common.exceptions import NoSuchElementException, ElementClickInterceptedException
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
 import pyperclip
@@ -37,7 +37,7 @@ class WhatsAppAIAutomation:
         logger.info("Entering __init__")
         try:
             self.config = self.load_config(os.getenv("CONFIG_PATH", "config.json"))
-            self.cache_file = os.getenv("CACHE_FILE_PATH", "message_cache.json")
+            self.cache_file = os.getenv("CACHE_FILE_PATH", ".cache.json")
             logger.info(f"Initialized cache_file: {self.cache_file}")
 
             self.driver = None
@@ -390,7 +390,7 @@ class WhatsAppAIAutomation:
         except Exception as e:
             logger.error(f"Error selecting chat: {e}")
             return False
-
+    
     def get_whatsapp_messages(self):
         try:
             self.driver.switch_to.window(self.tabs["WhatsApp"])
@@ -411,56 +411,49 @@ class WhatsAppAIAutomation:
                     EC.presence_of_element_located((By.CSS_SELECTOR, "div.message-in, div.message-out"))
                 )
 
-                # Check for outgoing messages to log cached responses
+                # Get all message containers
+                message_containers = self.driver.find_elements(By.CSS_SELECTOR, "div.message-in, div.message-out")
+                if not message_containers:
+                    logger.debug(f"No messages found in {group_name}")
+                    continue
+                    
+                # Check if the most recent message is from the current user (message-out)
+                latest_container = message_containers[-1]
+                # Find message-in or message-out within the container
+                message_type_divs = latest_container.find_elements(By.CSS_SELECTOR, "div.message-in, div.message-out")
+                if message_type_divs and "message-out" in message_type_divs[0].get_attribute("class"):
+                    logger.debug(f"Most recent message in {group_name} is from current user, skipping")
+                    continue
+                    
+                # If we're here, the latest message is an incoming message (message-in)
+                
+                # Check for images in the latest incoming message
                 try:
-                    message_containers = self.driver.find_elements(By.CSS_SELECTOR, "div.message-out")
-                    if message_containers:
-                        latest_outgoing = message_containers[-1]
-                        message_elements = latest_outgoing.find_elements(By.CSS_SELECTOR, "span.selectable-text")
-                        if message_elements:
-                            latest_message = message_elements[0].text
-                            if latest_message:
-                                content_key = self.hash_content(latest_message)
-                                if self.is_cached(content_key, group_name):
-                                    logger.debug(f"Latest outgoing message in {group_name} is cached response with hash {content_key}")
-                                else:
-                                    logger.debug(f"Latest outgoing message in {group_name} is not cached, hash: {content_key}")
-                except Exception as e:
-                    logger.error(f"Error checking outgoing messages in {group_name}: {e}")
-
-                # Check for images in incoming messages
-                try:
-                    message_containers = self.driver.find_elements(By.CSS_SELECTOR, "div.message-in")
-                    if message_containers:
-                        latest_container = message_containers[-1]
-                        try:
-                            # Prioritize blob: images, then data:image
-                            image_elements = latest_container.find_elements(By.CSS_SELECTOR, "img[src^='blob:']")
-                            if not image_elements:
-                                image_elements = latest_container.find_elements(By.CSS_SELECTOR, "img[src^='data:image']")
-                            
-                            if image_elements:
-                                # Use the first image element (preferably blob:)
-                                image_element = image_elements[0]
-                                img_src = image_element.get_attribute("src")
-                                if not img_src:
-                                    logger.error("No src attribute found for image in {group_name}, skipping")
-                                    continue
-                                
-                                # Hash the src for caching
-                                content_key = self.hash_content(img_src)
-                                if self.is_cached(content_key, group_name):
-                                    logger.debug(f"Image with src hash {content_key} in {group_name} already processed")
-                                    continue
-                                
-                                image_path = self.download_image(image_element)
-                                if image_path:
-                                    time.sleep(self.image_download_delay)  # Configurable delay for image processing
-                                    self.cache_content(content_key, group_name)
-                                    logger.info(f"New image detected in {group_name}, src hash: {content_key}")
-                                    return group_name, image_path, "image"
-                        except NoSuchElementException:
-                            pass
+                    # Prioritize blob: images, then data:image
+                    image_elements = latest_container.find_elements(By.CSS_SELECTOR, "img[src^='blob:']")
+                    if not image_elements:
+                        image_elements = latest_container.find_elements(By.CSS_SELECTOR, "img[src^='data:image']")
+                    
+                    if image_elements:
+                        # Use the first image element (preferably blob:)
+                        image_element = image_elements[0]
+                        img_src = image_element.get_attribute("src")
+                        if not img_src:
+                            logger.error(f"No src attribute found for image in {group_name}, skipping")
+                            continue
+                        
+                        # Hash the src for caching
+                        content_key = self.hash_content(img_src)
+                        if self.is_cached(content_key, group_name):
+                            logger.debug(f"Image with src hash {content_key} in {group_name} already processed")
+                            continue
+                        
+                        image_path = self.download_image(image_element)
+                        if image_path:
+                            time.sleep(self.image_download_delay)  # Configurable delay for image processing
+                            self.cache_content(content_key, group_name)
+                            logger.info(f"New image detected in {group_name}, src hash: {content_key}")
+                            return group_name, image_path, "image"
                 except Exception as e:
                     logger.error(f"Error checking for images in {group_name}: {e}")
 
@@ -487,7 +480,7 @@ class WhatsAppAIAutomation:
         except Exception as e:
             logger.error(f"Error fetching WhatsApp messages: {e}")
             return None, None, None
-
+        
     def upload_image_to_ai(self, ai_config, image_path):
         """Upload image to AI platform by using file input"""
         try:
@@ -592,14 +585,14 @@ class WhatsAppAIAutomation:
             self.driver.switch_to.window(window_handle)
             
             if message_type == "text":
-                prompt = f"Respond in 50 characters or fewer: {message}"
+                prompt = f"Respond in 50 characters or fewer, if I ask for translation only give me it translated. if I mention to be completed can be a comopelte message suitable for whatsapp: {message}"
                 input_field = WebDriverWait(self.driver, 10).until(
                     EC.presence_of_element_located((By.CSS_SELECTOR, ai_config["input_selector"]))
                 )
                 input_field.clear()
                 for char in prompt:
                     input_field.send_keys(char)
-                    time.sleep(0.01)
+                    time.sleep(0.00001)
                 input_field.send_keys(Keys.ENTER)
                 logger.info(f"Sent text message to {tab_name} with prompt: {prompt}")
                 
@@ -611,7 +604,7 @@ class WhatsAppAIAutomation:
                     return None
 
                 # 2. Increase the wait time after upload
-                time.sleep(self.image_processing_delay * 2)  # Double the delay
+                time.sleep(self.image_processing_delay)
                 logger.info(f"Waited for image processing in {tab_name}")
 
                 # 3. Check if image actually appears on the page
@@ -623,7 +616,6 @@ class WhatsAppAIAutomation:
                     logger.info("Image preview is visible on page")
                 except Exception as e:
                     logger.error(f"Image doesn't appear to be on page: {str(e)}")
-                    # Maybe try refreshing the page or restarting the process
 
                 # 4. Use a more reliable method for text input
                 input_field = WebDriverWait(self.driver, 10).until(
@@ -644,13 +636,31 @@ class WhatsAppAIAutomation:
                 input_field.send_keys(Keys.ENTER)
                 logger.info(f"Sent image prompt to {tab_name}: {prompt}")
             
-            wait_time = self.response_wait_time_image if message_type == "image" else self.response_wait_time_text
+            wait_time = float(self.response_wait_time_image if message_type == "image" else self.response_wait_time_text)
+
             time.sleep(wait_time)
             
             response_element = WebDriverWait(self.driver, 10).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, ai_config["response_selector"]))
             )
-            response = response_element.text if response_element else "No response"
+            
+            # Extract and clean response to remove citation numbers
+            if response_element:
+                raw_response = response_element.text
+                
+                # Clean the response using regex to remove citation numbers and source attributions
+                import re
+                # Remove citation numbers like [1], [2], etc.
+                response = re.sub(r'\[\d+\]', '', raw_response)
+                # Remove other potential artifacts like source attribution texts
+                response = re.sub(r'Source: .*?$', '', response, flags=re.MULTILINE)
+                # Remove any numbered footnotes like ¹, ², ³
+                response = re.sub(r'[¹²³⁴⁵⁶⁷⁸⁹⁰]', '', response)
+                # Final cleanup of any double spaces and trim
+                response = re.sub(r'\s+', ' ', response).strip()
+            else:
+                response = "No response"
+                
             logger.info(f"Received response from {tab_name}: {response[:50]}...")
             return response
             
@@ -673,6 +683,7 @@ class WhatsAppAIAutomation:
         
         self.driver.switch_to.window(window_handle)
         self.driver.refresh()
+        time.sleep(0.5)
         logger.info(f"Refreshed AI tab: {tab_name}")
 
     def send_to_whatsapp(self, message):

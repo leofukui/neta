@@ -1,0 +1,18 @@
+{
+  "ai_mappings": {
+    "Capivara": {
+      "url": "https://chat.openai.com/",
+      "tab_name": "ChatGPT",
+      "input_selector": "#prompt-textarea",
+      "response_selector": ".\\@thread-xl\\/thread\\:pt-header-height article:last-of-type div[data-message-author-role='assistant']"
+    },
+    "Perplexo": {
+      "url": "https://www.perplexity.ai/",
+      "tab_name": "Perplexity",
+      "input_selector": "textarea[autofocus]",
+      "response_selector": "div[id^='markdown-content-']:last-child",
+      "wait_seconds": 10
+    }
+  },
+  "whatsapp_url": "https://web.whatsapp.com/"
+}
