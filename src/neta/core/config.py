@@ -1,8 +1,9 @@
 import json
-import os
 import logging
+import os
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Any, Optional
+
 from dotenv import load_dotenv
 
 logger = logging.getLogger(__name__)
@@ -15,17 +16,17 @@ class Config:
     """
     Configuration manager for NETA.
     """
-    
+
     def __init__(self, config_path: Optional[str] = None):
         """
         Initialize configuration.
-        
+
         Args:
             config_path: Path to configuration file (default: from environment or config.json)
         """
         self.config_path = config_path or os.getenv("CONFIG_PATH", "config.json")
         self.config = self.load_config()
-        
+
         # Load delay configurations from environment variables
         self.upload_delay = float(os.getenv("UPLOAD_DELAY", "2"))
         self.image_processing_delay = float(os.getenv("IMAGE_PROCESSING_DELAY", "2"))
@@ -37,14 +38,14 @@ class Config:
         self.upload_button_delay = float(os.getenv("UPLOAD_BUTTON_DELAY", "2"))
         self.login_wait_delay = float(os.getenv("LOGIN_WAIT_DELAY", "1"))
         self.loop_interval_delay = float(os.getenv("LOOP_INTERVAL_DELAY", "5"))
-    
-    def load_config(self) -> Dict[str, Any]:
+
+    def load_config(self) -> dict[str, Any]:
         """
         Load configuration from JSON file.
-        
+
         Returns:
             Dictionary with configuration settings
-            
+
         Raises:
             FileNotFoundError: If config file doesn't exist
             json.JSONDecodeError: If config file is invalid JSON
@@ -54,8 +55,8 @@ class Config:
             if not Path(self.config_path).exists():
                 logger.error(f"Config file not found: {self.config_path}")
                 raise FileNotFoundError(f"Config file not found: {self.config_path}")
-                
-            with open(self.config_path, "r") as f:
+
+            with open(self.config_path) as f:
                 config = json.load(f)
                 logger.info(f"Loaded configuration from {self.config_path}")
                 return config
@@ -65,32 +66,32 @@ class Config:
         except Exception as e:
             logger.error(f"Failed to load config: {e}")
             raise
-    
-    def get_ai_config(self, group_name: str) -> Optional[Dict[str, Any]]:
+
+    def get_ai_config(self, group_name: str) -> Optional[dict[str, Any]]:
         """
         Get AI configuration for a specific group.
-        
+
         Args:
             group_name: Name of the WhatsApp group
-            
+
         Returns:
             AI configuration dict or None if not found
         """
         return self.config.get("ai_mappings", {}).get(group_name)
-    
+
     def get_whatsapp_url(self) -> str:
         """
         Get WhatsApp Web URL.
-        
+
         Returns:
             WhatsApp Web URL
         """
         return self.config.get("whatsapp_url", "https://web.whatsapp.com/")
-    
-    def get_ai_mappings(self) -> Dict[str, Dict[str, Any]]:
+
+    def get_ai_mappings(self) -> dict[str, dict[str, Any]]:
         """
         Get all AI mappings.
-        
+
         Returns:
             Dictionary of AI mappings
         """

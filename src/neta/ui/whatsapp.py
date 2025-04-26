@@ -16,11 +16,11 @@ class WhatsAppUI:
     """
     Handle WhatsApp Web UI interactions.
     """
-    
+
     def __init__(self, driver, image_manager=None):
         """
         Initialize WhatsApp UI handler.
-        
+
         Args:
             driver: Selenium WebDriver instance
             image_manager: ImageManager instance for handling images
@@ -31,14 +31,14 @@ class WhatsAppUI:
         self.image_download_delay = float(os.getenv("IMAGE_DOWNLOAD_DELAY", "2"))
         self.viewer_load_delay = float(os.getenv("VIEWER_LOAD_DELAY", "1"))
         self.viewer_close_delay = float(os.getenv("VIEWER_CLOSE_DELAY", "1"))
-    
+
     def select_chat(self, group_name):
         """
         Select or verify the specified chat.
-        
+
         Args:
             group_name: Name of the WhatsApp group
-            
+
         Returns:
             Boolean indicating success
         """
@@ -63,15 +63,15 @@ class WhatsAppUI:
         except Exception as e:
             logger.error(f"Error selecting chat: {e}")
             return False
-    
-    def get_new_messages(self, group_names, message_cache):
+
+    def get_new_messages(self, group_names, .cache.json):
         """
         Check for new messages in WhatsApp groups.
-        
+
         Args:
             group_names: List of WhatsApp group names to check
-            message_cache: MessageCache instance for tracking processed messages
-            
+            .cache.json: MessageCache instance for tracking processed messages
+
         Returns:
             Tuple of (group_name, message, message_type) or (None, None, None) if no new messages
         """
@@ -80,58 +80,58 @@ class WhatsAppUI:
             WebDriverWait(self.driver, 10).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, "div[role='listitem']"))
             )
-            
+
             # Check each configured group
             for group_name in group_names:
                 if not self.select_chat(group_name):
                     logger.warning(f"Skipping group {group_name} due to selection failure")
                     continue
-                    
+
                 # Wait for messages to load
                 WebDriverWait(self.driver, 5).until(
                     EC.presence_of_element_located((By.CSS_SELECTOR, "div.message-in, div.message-out"))
                 )
-                
+
                 # Get all message containers
                 message_containers = self.driver.find_elements(By.CSS_SELECTOR, "div.message-in, div.message-out")
                 if not message_containers:
                     logger.debug(f"No messages found in {group_name}")
                     continue
-                    
+
                 # Check if the most recent message is from the current user (message-out)
                 latest_container = message_containers[-1]
                 message_type_divs = latest_container.find_elements(By.CSS_SELECTOR, "div.message-in, div.message-out")
                 if message_type_divs and "message-out" in message_type_divs[0].get_attribute("class"):
                     logger.debug(f"Most recent message in {group_name} is from current user, skipping")
                     continue
-                    
+
                 # If we're here, the latest message is an incoming message (message-in)
-                
+
                 # Check for images in the latest incoming message
-                result = self._check_for_image(latest_container, group_name, message_cache)
+                result = self._check_for_image(latest_container, group_name, .cache.json)
                 if result:
                     return result
-                
+
                 # Check for text messages
-                result = self._check_for_text(latest_container, group_name, message_cache)
+                result = self._check_for_text(latest_container, group_name, .cache.json)
                 if result:
                     return result
-            
+
             logger.debug("No new messages found in any group")
             return None, None, None
         except Exception as e:
             logger.error(f"Error fetching WhatsApp messages: {e}")
             return None, None, None
-    
-    def _check_for_image(self, container, group_name, message_cache):
+
+    def _check_for_image(self, container, group_name, .cache.json):
         """
         Check for images in message container.
-        
+
         Args:
             container: Message container element
             group_name: Name of the WhatsApp group
-            message_cache: MessageCache instance
-            
+            .cache.json: MessageCache instance
+
         Returns:
             Tuple of (group_name, image_path, "image") or None if no new image
         """
@@ -140,7 +140,7 @@ class WhatsAppUI:
             image_elements = container.find_elements(By.CSS_SELECTOR, "img[src^='blob:']")
             if not image_elements:
                 image_elements = container.find_elements(By.CSS_SELECTOR, "img[src^='data:image']")
-            
+
             if image_elements:
                 # Use the first image element (preferably blob:)
                 image_element = image_elements[0]
@@ -148,32 +148,32 @@ class WhatsAppUI:
                 if not img_src:
                     logger.error(f"No src attribute found for image in {group_name}, skipping")
                     return None
-                
+
                 # Hash the src for caching
-                if message_cache.is_cached(img_src, group_name):
+                if .cache.json.is_cached(img_src, group_name):
                     logger.debug(f"Image in {group_name} already processed")
                     return None
-                
+
                 image_path = self._download_image(image_element)
                 if image_path:
                     time.sleep(self.image_download_delay)
-                    message_cache.cache_content(img_src, group_name)
+                    .cache.json.cache_content(img_src, group_name)
                     logger.info(f"New image detected in {group_name}")
                     return group_name, image_path, "image"
         except Exception as e:
             logger.error(f"Error checking for images in {group_name}: {e}")
-        
+
         return None
-    
-    def _check_for_text(self, container, group_name, message_cache):
+
+    def _check_for_text(self, container, group_name, .cache.json):
         """
         Check for text messages in message container.
-        
+
         Args:
             container: Message container element
             group_name: Name of the WhatsApp group
-            message_cache: MessageCache instance
-            
+            .cache.json: MessageCache instance
+
         Returns:
             Tuple of (group_name, message_text, "text") or None if no new text
         """
@@ -182,32 +182,32 @@ class WhatsAppUI:
             if message_elements:
                 latest_message = message_elements[0].text
                 if latest_message:
-                    if message_cache.is_cached(latest_message, group_name):
+                    if .cache.json.is_cached(latest_message, group_name):
                         logger.debug(f"Text message in {group_name} already processed")
                         return None
-                    
+
                     # Cache the incoming text message before processing
-                    message_cache.cache_content(latest_message, group_name)
+                    .cache.json.cache_content(latest_message, group_name)
                     logger.info(f"New text message detected in {group_name}: {latest_message[:50]}...")
                     return group_name, latest_message, "text"
         except Exception as e:
             logger.error(f"Error checking for text messages in {group_name}: {e}")
-        
+
         return None
-    
+
     def _download_image(self, img_element):
         """
         Download the full-resolution image by opening the image viewer.
-        
+
         Args:
             img_element: Image element to download
-            
+
         Returns:
             Path to downloaded image or None if download failed
         """
         try:
             logger.info("Attempting to download image...")
-            
+
             # First attempt: Try clicking directly
             try:
                 # Try clicking with multiple methods
@@ -237,22 +237,22 @@ class WhatsAppUI:
                             except Exception as e4:
                                 logger.error(f"All click methods failed: {e4}")
                                 raise Exception("Failed to click image with all methods")
-                
+
                 # Wait for viewer to load
                 time.sleep(self.viewer_load_delay)
-                
+
                 # Look for full image in viewer
                 full_image = WebDriverWait(self.driver, 10).until(
                     EC.presence_of_element_located((By.CSS_SELECTOR, "img[src^='blob:'], img.image-viewer"))
                 )
                 logger.info("Found full image in viewer")
-                
+
                 # Get the blob URL
                 blob_src = full_image.get_attribute("src")
                 if not blob_src:
                     logger.error("No src attribute found for full image")
                     raise Exception("No src attribute on full image")
-                    
+
                 # Fetch the blob content using script
                 fetch_script = """
                 async function fetchImage(url) {
@@ -273,15 +273,15 @@ class WhatsAppUI:
                 """
                 logger.info(f"Fetching image from blob URL: {blob_src[:50]}...")
                 blob_data_url = self.driver.execute_script(fetch_script, blob_src)
-                
+
                 if blob_data_url and blob_data_url.startswith("data:image"):
                     # Save image
                     if self.image_manager:
                         img_path = self.image_manager.save_image_from_blob(blob_data_url)
-                        
+
                         # Find download button (if available)
                         try:
-                            download_buttons = self.driver.find_elements(By.XPATH, 
+                            download_buttons = self.driver.find_elements(By.XPATH,
                                 "//div[contains(@aria-label, 'Download') or contains(@title, 'Download')]" +
                                 "|//button[contains(@aria-label, 'Download') or contains(@title, 'Download')]" +
                                 "|//span[contains(@aria-label, 'Download') or contains(@title, 'Download')]"
@@ -292,7 +292,7 @@ class WhatsAppUI:
                                 time.sleep(1)  # Wait for download to start
                         except Exception as e:
                             logger.debug(f"No download button found or couldn't click it: {e}")
-                        
+
                         # Close the image viewer
                         self._close_image_viewer()
                         return img_path
@@ -303,11 +303,11 @@ class WhatsAppUI:
                 else:
                     logger.error("Failed to fetch blob content from viewer")
                     self._close_image_viewer()
-                    
+
             except Exception as e:
                 logger.error(f"Error in primary download attempt: {e}")
                 self._close_image_viewer()
-            
+
             # Fallback to original image source if viewer method fails
             logger.info("Falling back to original image source")
             img_src = img_element.get_attribute("src")
@@ -315,33 +315,33 @@ class WhatsAppUI:
                 logger.info("Using data:image source as fallback")
                 img_path = self.image_manager.save_image_from_base64(img_src)
                 return img_path
-            
+
             logger.error("All download attempts failed")
             return None
-            
+
         except Exception as e:
             logger.error(f"Error in download_image: {e}")
             self._close_image_viewer()  # Make sure viewer is closed
             return None
-    
+
     def _close_image_viewer(self):
         """
         Helper method to close the image viewer if it's open.
-        
+
         Returns:
             Boolean indicating success
         """
         try:
             # Try multiple selectors for close buttons
             selectors = [
-                "button[aria-label='Close']", 
+                "button[aria-label='Close']",
                 "div[aria-label='Close']",
                 "span[aria-label='Close']",
                 "button.close-button",
                 "svg[data-icon='close']",
                 "div.modal-close-button"
             ]
-            
+
             for selector in selectors:
                 try:
                     close_buttons = self.driver.find_elements(By.CSS_SELECTOR, selector)
@@ -352,7 +352,7 @@ class WhatsAppUI:
                         return True
                 except Exception:
                     continue
-                    
+
             # Fallback: Try escape key
             try:
                 ActionChains(self.driver).send_keys(Keys.ESCAPE).perform()
@@ -361,19 +361,19 @@ class WhatsAppUI:
                 return True
             except Exception as e:
                 logger.debug(f"ESC key failed: {e}")
-                
+
             return False
         except Exception as e:
             logger.error(f"Error closing image viewer: {e}")
             return False
-    
+
     def send_message(self, message):
         """
         Send a message to the current WhatsApp chat.
-        
+
         Args:
             message: Message text to send
-            
+
         Returns:
             Boolean indicating success
         """
@@ -382,24 +382,24 @@ class WhatsAppUI:
             if not self.current_chat:
                 logger.error("No active chat selected")
                 return False
-                
+
             # Use clipboard to handle special characters reliably
             pyperclip.copy(message)
-            
+
             # Find and interact with the input field
             input_field = WebDriverWait(self.driver, 10).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, "div[aria-label='Type a message']"))
             )
             input_field.click()
-            
+
             # Paste message using keyboard shortcut
             actions = ActionChains(self.driver)
             actions.key_down(Keys.COMMAND).send_keys('v').key_up(Keys.COMMAND).perform()
-            
+
             # Send message
             input_field.send_keys(Keys.ENTER)
             logger.info(f"Sent message to WhatsApp: {message[:50]}...")
-            
+
             return True
         except Exception as e:
             logger.error(f"Error sending to WhatsApp: {e}")

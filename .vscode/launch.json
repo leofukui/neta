@@ -1,0 +1,52 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "NETA",
+      "type": "python",
+      "request": "launch",
+      "module": "neta.main",
+      "cwd": "${workspaceFolder}",
+      "justMyCode": true,
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/src"
+      }
+    },
+    {
+      "name": "NETA (Debug)",
+      "type": "python",
+      "request": "launch",
+      "module": "neta.main",
+      "cwd": "${workspaceFolder}",
+      "args": ["--log-level", "DEBUG"],
+      "justMyCode": false,
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/src"
+      }
+    },
+    {
+      "name": "NETA (Custom Config)",
+      "type": "python",
+      "request": "launch",
+      "module": "neta.main",
+      "cwd": "${workspaceFolder}",
+      "args": ["--config", "config/full.json"],
+      "justMyCode": true,
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/src"
+      }
+    },
+    {
+      "name": "Run Tests",
+      "type": "python",
+      "request": "launch",
+      "module": "pytest",
+      "cwd": "${workspaceFolder}",
+      "args": ["tests/"],
+      "justMyCode": false,
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/src"
+      }
+    }
+  ]
+}

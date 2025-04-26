@@ -1,0 +1,24 @@
+line-length = 120
+target-version = "py310"
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "W",   # pycodestyle warnings
+    "I",   # isort
+    "N",   # pep8-naming
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+    "D",   # pydocstyle
+]
+ignore = [
+    "E501",  # line too long (handled by black)
+    "D203",  # one-blank-line-before-class (incompatible with D211)
+    "D212",  # multi-line-summary-first-line (incompatible with D213)
+]
+
+[pydocstyle]
+convention = "google"
+
+[isort]
+known-first-party = ["neta"]

@@ -1,69 +1,70 @@
-# Byte-compiled / optimized / DLL files
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
-
-# C extensions
 *.so
-
-# Virtual environment (even if poetry usually manages it outside the project)
-.venv/
-venv/
-
-# Poetry files
-poetry.lock
-
-# Distribution / packaging
+.Python
 build/
+develop-eggs/
 dist/
-*.egg-info/
+downloads/
+eggs/
 .eggs/
-
-# Installer logs
-pip-log.txt
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
 
 # Unit test / coverage reports
 htmlcov/
 .tox/
 .nox/
 .coverage
+.coverage.*
+.cache
+nosetests.xml
 coverage.xml
 *.cover
-*.py,cover
-.cache
-pytest_cache/
+.hypothesis/
+.pytest_cache/
 
-# MyPy
-.mypy_cache/
-.dmypy.json
-dmypy.json
-
-# Pyre
-.pyre/
-
-# Pytype
-.pytype/
-
-# VSCode
-.vscode/
-
-# IDEs
-.idea/
-*.sublime-project
-*.sublime-workspace
-
-# Logs
-*.log
-
-# dotenv
+# Environments
 .env
-.env.*
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
 
-# Misc
+# VS Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Project-specific
+data/*.json
+logs/*.log
+*.log
+.cache.json.json
+
+# Temporary files
 .DS_Store
 Thumbs.db
-
-# Project
+.directory
+*.tmp
+*.swp
+*.swo
+*~
 .browser-profile
 .cache.json
 config_env.json
+
