@@ -26,8 +26,8 @@ class Config:
         self.config = self.load_config()
 
         # Load delay configurations from environment variables
-        self.upload_delay = float(os.getenv("UPLOAD_DELAY", "2"))
-        self.image_processing_delay = float(os.getenv("IMAGE_PROCESSING_DELAY", "2"))
+        self.upload_delay = float(os.getenv("UPLOAD_DELAY", "5"))
+        self.image_processing_delay = float(os.getenv("IMAGE_PROCESSING_DELAY", "5"))
         self.response_wait_time_text = float(os.getenv("RESPONSE_WAIT_TIME_TEXT", "2"))
         self.response_wait_time_image = float(os.getenv("RESPONSE_WAIT_TIME_IMAGE", "5"))
         self.image_download_delay = float(os.getenv("IMAGE_DOWNLOAD_DELAY", "2"))

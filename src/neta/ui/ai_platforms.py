@@ -2,7 +2,7 @@ import logging
 import os
 import time
 
-from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import StaleElementReferenceException, TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
@@ -31,6 +31,9 @@ class AIPlatformUI:
         self.response_wait_time_text = float(os.getenv("RESPONSE_WAIT_TIME_TEXT", "2"))
         self.response_wait_time_image = float(os.getenv("RESPONSE_WAIT_TIME_IMAGE", "5"))
         self.upload_button_delay = float(os.getenv("UPLOAD_BUTTON_DELAY", "2"))
+        self.max_response_wait = float(
+            os.getenv("MAX_RESPONSE_WAIT", "30")
+        )  # Maximum wait time for response
 
     def send_text_message(self, ai_config, message):
         """
@@ -44,6 +47,9 @@ class AIPlatformUI:
             AI response or None if failed
         """
         try:
+            # Get current responses before sending message
+            current_responses = self._get_current_responses(ai_config)
+
             # Create prompt with character limit guidance
             prompt = f"Respond in 50 characters or fewer. If asked for translation, only translate (fully). If asked 'complete', write a full description suitable for whatsapp (no emoji and only ascii chars): {message}"
 
@@ -61,11 +67,8 @@ class AIPlatformUI:
                 f"Sent text message to {ai_config['tab_name']} with prompt: {prompt[:50]}..."
             )
 
-            # Wait for response
-            time.sleep(self.response_wait_time_text)
-
-            # Get response
-            return self._get_response(ai_config)
+            # Wait for and get new response
+            return self._wait_for_new_response(ai_config, current_responses)
 
         except Exception as e:
             logger.error(f"Error sending text to {ai_config['tab_name']}: {e}")
@@ -83,6 +86,9 @@ class AIPlatformUI:
             AI response or None if failed
         """
         try:
+            # Get current responses before sending image
+            current_responses = self._get_current_responses(ai_config)
+
             # Upload image
             if not self._upload_image(ai_config, image_path):
                 return None
@@ -106,7 +112,7 @@ class AIPlatformUI:
                 EC.presence_of_element_located((By.CSS_SELECTOR, ai_config["input_selector"]))
             )
 
-            prompt = "Describe the image in 60 characters or fewer, with useful detail. If there’s no image and I say 'complete', write a full description suitable for WhatsApp. Do not use emojis or invalid characters (only ascii)."
+            prompt = "Describe the image in 60 characters or fewer, with useful detail (product name, model, specie). Do not use emojis or invalid characters (only ascii)."
 
             input_field.click()
             input_field.clear()
@@ -115,15 +121,141 @@ class AIPlatformUI:
 
             logger.info(f"Sent image prompt to {ai_config['tab_name']}")
 
-            # Wait for response
-            time.sleep(self.response_wait_time_image)
-
-            # Get response
-            return self._get_response(ai_config)
+            # Wait for and get new response
+            return self._wait_for_new_response(ai_config, current_responses)
 
         except Exception as e:
             logger.error(f"Error sending image to {ai_config['tab_name']}: {e}")
             return None
+
+    def _get_current_responses(self, ai_config):
+        """
+        Get current response elements on the page.
+
+        Args:
+            ai_config: Configuration for the AI platform
+
+        Returns:
+            List of response elements
+        """
+        try:
+            response_elements = self.driver.find_elements(
+                By.CSS_SELECTOR, ai_config["response_selector"]
+            )
+            return response_elements
+        except Exception as e:
+            logger.error(f"Error getting current responses: {e}")
+            return []
+
+    def _wait_for_new_response(self, ai_config, previous_responses):
+        """
+        Wait for a new response to appear and be fully loaded.
+
+        Args:
+            ai_config: Configuration for the AI platform
+            previous_responses: List of response elements before the message was sent
+
+        Returns:
+            New response text or None if failed
+        """
+        try:
+            # Wait for a new response element to appear
+            def new_response_appeared(driver):
+                current_responses = driver.find_elements(
+                    By.CSS_SELECTOR, ai_config["response_selector"]
+                )
+                # Check if we have more responses than before
+                if len(current_responses) > len(previous_responses):
+                    # Get the newest response
+                    new_response = current_responses[-1]
+                    # Check if the new response has content
+                    if new_response.text and len(new_response.text.strip()) > 0:
+                        # Check if the response is still loading
+                        # Look for loading indicators (customize based on the AI platform)
+                        loading_indicators = ["typing", "loading", "thinking", "..."]
+                        response_text = new_response.text.lower()
+                        if not any(indicator in response_text for indicator in loading_indicators):
+                            return new_response
+                return False
+
+            # Wait for new response with timeout
+            response_element = WebDriverWait(self.driver, self.max_response_wait).until(
+                new_response_appeared
+            )
+
+            # Wait for response to stabilize (ensure it's fully loaded)
+            last_text = ""
+            stable_count = 0
+            max_stable_checks = 3  # Number of checks where text remains the same
+
+            while stable_count < max_stable_checks:
+                try:
+                    current_text = response_element.text
+                    if current_text == last_text:
+                        stable_count += 1
+                    else:
+                        stable_count = 0
+                    last_text = current_text
+                    time.sleep(0.5)  # Small delay between checks
+                except StaleElementReferenceException:
+                    # Element might have been updated, try to get it again
+                    response_element = self.driver.find_elements(
+                        By.CSS_SELECTOR, ai_config["response_selector"]
+                    )[-1]
+                    stable_count = 0
+                except Exception as e:
+                    logger.error(f"Error during stability check: {e}")
+                    break
+
+            # Clean and return the response
+            if response_element:
+                return self._clean_response_text(response_element.text)
+            else:
+                return "No response"
+
+        except TimeoutException:
+            logger.error("Timeout waiting for new response")
+            return None
+        except Exception as e:
+            logger.error(f"Error waiting for new response: {e}")
+            return None
+
+    def _clean_response_text(self, raw_response):
+        """
+        Clean the response text.
+
+        Args:
+            raw_response: Raw response text from the AI platform
+
+        Returns:
+            Cleaned response text
+        """
+        import re
+
+        # Remove citation numbers like [1], [2], etc.
+        response = re.sub(r"\[\d+\]", "", raw_response)
+        # Remove other potential artifacts like source attribution texts
+        response = re.sub(r"Source: .*?$", "", response, flags=re.MULTILINE)
+        # Remove citation numbers like [1], [2], etc.
+        response = re.sub(r"\[\d+\]", "", raw_response)
+        # Remove other potential artifacts like source attribution texts
+        response = re.sub(r"Source: .*?$", "", response, flags=re.MULTILINE)
+        # Ensure proper line breaks for bullet lists
+        response = re.sub(r"([^\n])(- )", r"\1\n\2", response)
+
+        # Final cleanup of any double spaces and trim
+        response = re.sub(r"\s+", " ", response).strip()
+
+        # Special handling for multiline responses
+        lines = response.split("\n")
+        cleaned_lines = []
+        for line in lines:
+            line = line.strip()
+            if line:
+                cleaned_lines.append(line)
+        response = "\n".join(cleaned_lines)
+
+        return response
 
     def _type_text_gradually(self, element, text):
         """
@@ -253,49 +385,6 @@ class AIPlatformUI:
         except Exception as e:
             logger.error(f"Error with upload buttons: {e}")
             return False
-
-    def _get_response(self, ai_config):
-        """
-        Get response from AI platform.
-
-        Args:
-            ai_config: Configuration for the AI platform
-
-        Returns:
-            Cleaned response text or None if failed
-        """
-        try:
-            # Wait for response element
-            response_element = WebDriverWait(self.driver, 10).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, ai_config["response_selector"]))
-            )
-
-            if response_element:
-                raw_response = response_element.text
-
-                # Clean the response
-                import re
-
-                # Remove citation numbers like [1], [2], etc.
-                response = re.sub(r"\[\d+\]", "", raw_response)
-                # Remove other potential artifacts like source attribution texts
-                response = re.sub(r"Source: .*?$", "", response, flags=re.MULTILINE)
-                # Remove any numbered footnotes like ¹, ², ³
-                response = re.sub(r"[¹²³⁴⁵⁶⁷⁸⁹⁰]", "", response)
-                # Final cleanup of any double spaces and trim
-                response = re.sub(r"\s+", " ", response).strip()
-
-                logger.info(f"Received response: {response[:50]}...")
-                return response
-            else:
-                return "No response"
-
-        except TimeoutException:
-            logger.error("Timeout waiting for response")
-            return None
-        except Exception as e:
-            logger.error(f"Error getting response: {e}")
-            return None
 
     def refresh_page(self):
         """
