@@ -46,7 +46,7 @@ class AIPlatformUI:
 
     def send_text_message(self, ai_config, message):
         """
-        Send text message to AI platform.
+        Send text message to AI platform using clipboard paste.
 
         Args:
             ai_config: Configuration for the AI platform
@@ -56,10 +56,7 @@ class AIPlatformUI:
             AI response or None if failed
         """
         try:
-            # Get current responses before sending message
             current_responses = self._get_current_responses(ai_config)
-
-            # Create prompt with character limit guidance
             prompt = f"Respond in 50 characters or fewer. If asked for translation, only translate (fully). If asked 'complete', write a full description suitable for whatsapp (no emoji and only ascii chars): {message}"
 
             # Find input field
@@ -67,25 +64,51 @@ class AIPlatformUI:
                 EC.presence_of_element_located((By.CSS_SELECTOR, ai_config["input_selector"]))
             )
 
-            # Clear existing text and send new message
+            # Clear existing text and paste prompt
             input_field.clear()
-            self._type_text_gradually(input_field, prompt)
+            self._paste_text(input_field, prompt)  # Use clipboard paste
             input_field.send_keys(Keys.ENTER)
 
             logger.info(
                 f"Sent text message to {ai_config['tab_name']} with prompt: {prompt[:50]}..."
             )
 
-            # Wait for and get new response
             return self._wait_for_new_response(ai_config, current_responses)
 
         except Exception as e:
             logger.error(f"Error sending text to {ai_config['tab_name']}: {e}")
             return None
 
+    def _paste_text(self, element, text):
+        """
+        Copy text to clipboard and paste it into the given element.
+
+        Args:
+            element: Web element to paste into
+            text: Text to copy and paste
+        """
+        try:
+            # Copy text to clipboard
+            pyperclip.copy(text)
+
+            # Ensure element is focused
+            element.click()
+            self.driver.execute_script("arguments[0].focus();", element)
+
+            # Paste using Cmd+V (macOS)
+            actions = ActionChains(self.driver)
+            actions.key_down(Keys.COMMAND).send_keys("v").key_up(Keys.COMMAND).perform()
+
+            logger.debug("Pasted text using clipboard")
+            time.sleep(0.1)  # Small delay to ensure paste completes
+        except Exception as e:
+            logger.error(f"Error pasting text: {e}")
+            # Fallback to direct send_keys if clipboard fails
+            element.send_keys(text)
+
     def send_image(self, ai_config, image_path):
         """
-        Send image to AI platform.
+        Send image to AI platform and paste prompt using clipboard.
 
         Args:
             ai_config: Configuration for the AI platform
@@ -95,17 +118,12 @@ class AIPlatformUI:
             AI response or None if failed
         """
         try:
-            # Get current responses before sending image
             current_responses = self._get_current_responses(ai_config)
-
-            # Upload image
             if not self._upload_image(ai_config, image_path):
                 return None
 
-            # Wait for image processing
             time.sleep(self.image_processing_delay)
 
-            # Verify image appears on page
             try:
                 WebDriverWait(self.driver, 10).until(
                     EC.presence_of_element_located(
@@ -116,7 +134,6 @@ class AIPlatformUI:
             except Exception as e:
                 logger.error(f"Image doesn't appear to be on page: {e}")
 
-            # Add prompt for image description
             input_field = WebDriverWait(self.driver, 10).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, ai_config["input_selector"]))
             )
@@ -125,12 +142,11 @@ class AIPlatformUI:
 
             input_field.click()
             input_field.clear()
-            self._type_text_gradually(input_field, prompt)
+            self._paste_text(input_field, prompt)  # Use clipboard paste
             input_field.send_keys(Keys.ENTER)
 
             logger.info(f"Sent image prompt to {ai_config['tab_name']}")
 
-            # Wait for and get new response
             return self._wait_for_new_response(ai_config, current_responses)
 
         except Exception as e:
@@ -301,18 +317,6 @@ class AIPlatformUI:
         response = "\n".join(cleaned_lines)
 
         return response
-
-    def _type_text_gradually(self, element, text):
-        """
-        Type text gradually to simulate human typing.
-
-        Args:
-            element: Element to type into
-            text: Text to type
-        """
-        for char in text:
-            element.send_keys(char)
-            time.sleep(0.000001)  # Very small delay between characters
 
     def _upload_image(self, ai_config, image_path):
         """

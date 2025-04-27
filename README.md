@@ -52,15 +52,16 @@ Want to see the setup under the hood? Check out the [ARCHITECTURE.md](docs/ARCHI
 ### Prerequisites
 
 * Python 3.10+
-* [Poetry](https://python-poetry.org/) (for managing dependencies effectively)
-* Google Chrome browser (Neta needs to control it!)
+* [Poetry](https://python-poetry.org/) (for managing dependencies effectively).
+* [pngpaste](https://formulae.brew.sh/formula/pngpaste) installed to be able to upload images.
+* Google Chrome browser (Neta needs to control it!).
 * **Operating System:** Currently, Neta has only been tested on **macOS**. It *might* work on Linux or Windows with adjustments (especially regarding Chrome profile paths and potentially UI selectors), but this is not guaranteed or supported.
 
 ### Installation
 
 1.  **Clone the Repository:**
     ```bash
-    git clone [https://github.com/leofukui/neta.git](https://github.com/leofukui/neta.git)
+    git clone https://github.com/leofukui/neta.git
     cd neta
     ```
 
