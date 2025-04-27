@@ -22,7 +22,7 @@ The default settings are optimized for responses that are easily read back by sm
 | Claude      | Claudio       | Anthropic   |
 | Perplexity  | Perplexo      | Perplexity AI|
 
-Curious about the agents? Dive into the [Museum Section](docs/museum/readme.md)!
+Curious about the agents? Dive into the [Museum Section](./docs/museum/README.md)!
 
 ## 🚨 Important Warnings & Disclaimers 🚨
 
