@@ -13,11 +13,23 @@
       "response_selector": "div[id^='markdown-content-'] > div",
       "wait_seconds": 10
     },
+    "Gemininas": {
+      "url": "https://gemini.google.com/",
+      "tab_name": "Gemini",
+      "input_selector": "div[data-placeholder='Ask Gemini']",
+      "response_selector": ".response-container:last-child .markdown"
+    },
     "Birdo": {
       "url": "https://grok.com/",
       "tab_name": "Grok",
       "input_selector": "textarea[aria-label^='Ask']",
       "response_selector": ".message-bubble"
+    },
+    "Claudio": {
+      "url": "https://claude.ai/",
+      "tab_name": "Claude",
+      "input_selector": "p[data-placeholder='How can I help you today?'], p[data-placeholder='Reply to Claude...']",
+      "response_selector": "div[data-is-streaming]"
     }
   },
   "whatsapp_url": "https://web.whatsapp.com/"

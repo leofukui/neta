@@ -12,6 +12,8 @@ selenium = "^4.15.0"
 webdriver-manager = "^4.0.0"
 pyperclip = "^1.9.0"
 python-dotenv = "^1.0.0"
+requests = "^2.32.3"
+pillow = "^11.2.1"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.1.3"

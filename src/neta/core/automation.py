@@ -1,4 +1,3 @@
-
 import os
 import time
 
@@ -55,7 +54,7 @@ class NetaAutomation:
             self.browser_manager.setup_browser(
                 self.config.get_whatsapp_url(),
                 self.config.get_ai_mappings(),
-                self.config.login_wait_delay
+                self.config.login_wait_delay,
             )
 
             # Initialize UI components
