@@ -45,7 +45,6 @@ Want to see the setup under the hood? Check out the [ARCHITECTURE.md](docs/ARCHI
 ## In Progress ⏰
 
 * 🖼️ Returning images *from* AI chats back to WhatsApp.
-* ⚡ Performance enhancements (it's Python UI automation, so 'performance' is relative!).
 
 ## Getting Started: Let the Hacking Begin!
 
