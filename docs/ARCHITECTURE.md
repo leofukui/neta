@@ -6,12 +6,14 @@ This document provides a high-level overview of the Neta application's architect
 
 Neta acts as a bridge between WhatsApp Web and various AI chat platforms (like ChatGPT, Claude, Gemini, etc.). It monitors designated WhatsApp chats for new messages or images, sends them to the corresponding AI service via its web interface, and returns the response to the originating WhatsApp chat.
 
-+---------------------+      +---------------------+      +----------------------+
-|                     |      |                     |      |                      |
-|  WhatsApp Web UI    |----->|     Neta Service    |----->|  AI Platform Web UIs |
-| (Monitored via      |      |  (Python Process)   |      |  (Automated via      |
-|  Browser Automation)|<-----|                     |<-----|  Browser Automation) |
-+---------------------+      +---------------------+      +----------------------+
+```
++----------------+     +----------------+     +----------------+
+|                |     |                |     |                |
+|   WhatsApp     |---->|     Neta       |---->|   AI Platforms |
+|     Web        |     |  Application   |     | (GPT, Claude,  |
+|                |<----|                |<----| Perplexity...) |
++----------------+     +----------------+     +----------------+
+```
 
 ## Core Layers
 
