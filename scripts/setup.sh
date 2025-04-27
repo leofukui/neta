@@ -1,5 +1,5 @@
 #!/bin/bash
-# Script to set up NETA development environment
+# Script to set up Neta development environment
 
 # Go to project root directory
 cd "$(dirname "$0")/.." || exit 1

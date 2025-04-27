@@ -14,17 +14,17 @@ logger = setup_logger()
 
 class NetaAutomation:
     """
-    Main automation class for NETA.
+    Main automation class for Neta.
     """
 
     def __init__(self, config_path=None):
         """
-        Initialize NETA automation.
+        Initialize Neta automation.
 
         Args:
             config_path: Path to configuration file (default: from environment or config.json)
         """
-        logger.info("Initializing NETA automation")
+        logger.info("Initializing Neta automation")
 
         # Load configuration
         self.config = Config(config_path)

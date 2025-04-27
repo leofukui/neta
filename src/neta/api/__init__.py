@@ -1,1 +1,1 @@
-"""API integration components for NETA module."""
+"""API integration components for Neta module."""

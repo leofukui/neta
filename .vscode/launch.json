@@ -2,7 +2,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "NETA",
+      "name": "Neta",
       "type": "python",
       "request": "launch",
       "module": "neta.main",
@@ -13,7 +13,7 @@
       }
     },
     {
-      "name": "NETA (Debug)",
+      "name": "Neta (Debug)",
       "type": "python",
       "request": "launch",
       "module": "neta.main",
@@ -25,7 +25,7 @@
       }
     },
     {
-      "name": "NETA (Custom Config)",
+      "name": "Neta (Custom Config)",
       "type": "python",
       "request": "launch",
       "module": "neta.main",

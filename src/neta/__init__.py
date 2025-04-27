@@ -1,3 +1,3 @@
-"""NETA - WhatsApp-AI chat integration bridge."""
+"""Neta - WhatsApp-AI chat integration bridge."""
 
 __version__ = "0.1.0"

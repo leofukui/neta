@@ -1,1 +1,1 @@
-"""Test package for NETA."""
+"""Test package for Neta."""

@@ -1,91 +1,43 @@
-# NETA Architecture
+# Neta Architecture
 
-This document outlines the architecture of the NETA application, which bridges WhatsApp chats with AI platforms.
+This document provides a high-level overview of the Neta application's architecture.
 
 ## System Overview
 
-NETA is designed as a modular Python application that connects WhatsApp Web with various AI chat platforms. It monitors WhatsApp chats for new messages, processes them with the appropriate AI model, and returns the responses to the original chat.
+Neta acts as a bridge between WhatsApp Web and various AI chat platforms (like ChatGPT, Claude, Gemini, etc.). It monitors designated WhatsApp chats for new messages or images, sends them to the corresponding AI service via its web interface, and returns the response to the originating WhatsApp chat.
 
-```
-+----------------+     +----------------+     +----------------+
-|                |     |                |     |                |
-|   WhatsApp     |---->|     NETA      |---->|   AI Platforms |
-|     Web        |     |  Application   |     | (GPT, Claude,  |
-|                |<----|                |<----| Perplexity...) |
-+----------------+     +----------------+     +----------------+
-```
++---------------------+      +---------------------+      +----------------------+
+|                     |      |                     |      |                      |
+|  WhatsApp Web UI    |----->|     Neta Service    |----->|  AI Platform Web UIs |
+| (Monitored via      |      |  (Python Process)   |      |  (Automated via      |
+|  Browser Automation)|<-----|                     |<-----|  Browser Automation) |
++---------------------+      +---------------------+      +----------------------+
 
-## Core Components
+## Core Layers
 
-### 1. `NetaAutomation` (Core Controller)
+The application operates across three main functional layers:
 
-This is the main controller class that orchestrates the entire application flow. It:
-- Initializes all components
-- Manages the main event loop
-- Coordinates interactions between WhatsApp and AI platforms
-- Handles message processing and response routing
+1.  **WhatsApp Layer:** This layer interacts directly with the WhatsApp Web interface running in a controlled browser instance. Its primary responsibilities are selecting the configured chats and detecting new incoming messages (both text and images).
+2.  **Neta Service Layer (Core Logic):** This is the central orchestrator written in Python. It manages the overall workflow, loads configurations (like which chat maps to which AI), routes incoming WhatsApp messages to the correct AI platform layer, prevents duplicate message processing using a simple cache, and routes the AI responses back to the WhatsApp layer.
+3.  **AI Platform Layer:** Similar to the WhatsApp layer, this interacts with the web interfaces of the various configured AI platforms (ChatGPT, Claude, Gemini, etc.) within the browser. It handles sending prompts or uploading images and extracting the generated responses from the AI's chat interface.
 
-### 2. Browser Management
+## Interaction Method & Automation
 
-The `BrowserManager` handles browser initialization and tab management:
-- Creates a Chrome browser instance with appropriate settings
-- Manages tabs for WhatsApp and AI platforms
-- Provides methods for switching between tabs
+* **Browser Automation:** Neta fundamentally relies on **UI automation** using **Selenium**. It launches and controls a visible Google Chrome browser instance to interact with the live web interfaces of both WhatsApp Web and the AI platforms. This means you need to be logged into these services in the browser Neta controls.
+* **Goal: Background Operation:** Currently, the browser window is visible during operation. A key area for future improvement is optimizing Neta to run reliably in the background (e.g., using headless browser mode), making it less intrusive.
+* **"Auto-Guessing" UI Elements:** Instead of requiring strict, predefined CSS selectors for every input field and button on each AI platform's ever-changing UI, Neta incorporates a degree of "auto-guessing". It attempts common strategies to find text input areas and image upload mechanisms automatically. Surprisingly, this heuristic approach has proven reasonably effective, reducing the need for constant configuration updates.
 
-### 3. UI Interaction
+## Development Approach & Code Status
 
-UI interaction is divided into specific components:
-- `WhatsAppUI`: Handles WhatsApp Web interface interactions
-  - Selecting chats
-  - Detecting new messages (text and images)
-  - Sending responses
+It's important to note the development style reflects the project's origins (as mentioned in the main README):
 
-- `AIPlatformUI`: Manages interactions with AI platforms
-  - Sending text prompts
-  - Uploading and describing images
-  - Extracting responses
+* **Rapid Development:** Much of the code was developed quickly ("vibe coded").
+* **Minimal Review:** The code hasn't undergone extensive peer review.
+* **Pragmatic Implementation:** Development often involves copying and adapting existing code patterns within the project, with direct intervention focused primarily on fixing issues or adding core functionality as needed.
 
-### 4. Configuration and Utilities
+## Data Flow Summary
 
-- `Config`: Loads and provides access to configuration settings
-- `MessageCache`: Prevents duplicate processing of messages
-- `ImageManager`: Handles temporary image storage and cleanup
-- `Logger`: Provides consistent logging throughout the application
-
-## Data Flow
-
-1. **Message Detection**:
-   - Application monitors WhatsApp Web for new incoming messages
-   - When a message is detected, it's checked against the cache to prevent duplicate processing
-
-2. **AI Processing**:
-   - Based on the chat name, the message is routed to the appropriate AI platform
-   - Text messages are sent directly; images are first downloaded then uploaded to the AI
-   - The application waits for and extracts the AI's response
-
-3. **Response Delivery**:
-   - The AI response is sent back to the original WhatsApp chat
-   - The response is cached to prevent future duplication
-
-## Extension Points
-
-The architecture is designed for extensibility:
-
-1. **New AI Platforms**:
-   - Add new platform configurations to the JSON config file
-   - The application will automatically handle them without code changes
-
-2. **Message Processing Enhancements**:
-   - Modify prompt templates in the AI platform UI classes
-   - Add pre-processing or post-processing steps in the automation class
-
-3. **UI Interaction Improvements**:
-   - The UI interaction classes can be updated to handle changes in web interfaces
-   - Selector configurations allow adapting to UI changes without code modification
-
-## Dependencies
-
-- **Selenium**: Browser automation and element interaction
-- **WebDriver Manager**: Chrome driver management
-- **PyperClip**: Clipboard operations for reliable text input
-- **Python-dotenv**: Environment variable management
+1.  **Detection:** The Neta service monitors the WhatsApp Web UI via the controlled browser for new messages in configured chats.
+2.  **Routing & Processing:** New messages are passed to the Neta service, which determines the target AI based on the chat name. Text or images are sent to the appropriate AI platform's web UI.
+3.  **Response Retrieval:** Neta waits for and extracts the response generated by the AI within its web interface.
+4.  **Delivery:** The extracted response is sent back to the original WhatsApp chat via the WhatsApp Web UI automation.

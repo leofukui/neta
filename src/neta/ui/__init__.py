@@ -1,1 +1,1 @@
-"""UI interaction components for NETA module."""
+"""UI interaction components for Neta module."""

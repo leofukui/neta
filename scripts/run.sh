@@ -1,5 +1,5 @@
 #!/bin/bash
-# Script to run NETA with standard settings
+# Script to run Neta with standard settings
 
 # Go to project root directory
 cd "$(dirname "$0")/.." || exit 1

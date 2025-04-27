@@ -13,7 +13,7 @@ load_dotenv()
 
 
 class Config:
-    """Configuration manager for NETA."""
+    """Configuration manager for Neta."""
 
     def __init__(self, config_path: str | None = None):
         """

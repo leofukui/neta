@@ -1,4 +1,4 @@
-"""Main entry point for NETA application."""
+"""Main entry point for Neta application."""
 
 import argparse
 import logging
@@ -19,7 +19,7 @@ load_dotenv()
 
 def parse_arguments():
     """Parse command line arguments."""
-    parser = argparse.ArgumentParser(description="NETA: WhatsApp-AI chat integration bridge")
+    parser = argparse.ArgumentParser(description="Neta: WhatsApp-AI chat integration bridge")
 
     parser.add_argument(
         "--config", type=str, help="Path to configuration file (default: from env or config.json)"
@@ -44,14 +44,14 @@ def parse_arguments():
 
 
 def main():
-    """Main entry point for NETA application."""
+    """Main entry point for Neta application."""
     args = parse_arguments()
 
     # Set up logging with specified level
     log_level = getattr(logging, args.log_level)
     logger = setup_logger(log_level, args.log_file)
 
-    logger.info("Starting NETA application")
+    logger.info("Starting Neta application")
 
     try:
         # Initialize and run automation
@@ -62,7 +62,7 @@ def main():
     except Exception as e:
         logger.error(f"Application error: {e}", exc_info=True)
 
-    logger.info("NETA application terminated")
+    logger.info("Neta application terminated")
 
 
 if __name__ == "__main__":

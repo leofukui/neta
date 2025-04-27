@@ -1,1 +1,1 @@
-"""Core functionality for NETA module."""
+"""Core functionality for Neta module."""
