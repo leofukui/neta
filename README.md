@@ -8,9 +8,20 @@ This Python application connects WhatsApp Web to various AI platforms (ChatGPT, 
 
 ## The Origin Story ✨🔮
 
-This project was **vibe coded** in less than 24 hours, fueled by mild annoyance. Why? Because those otherwise cool Ray-Ban Meta glasses often replied "I can't do that on your glasses." Neta was created to bridge that gap, taking your WhatsApp messages (text or images!) and getting answers from the major AI platforms.
+This project was vibe-coded in less than 24 hours, fuelled by mild annoyance.
+Why? Because every time I said **"Hey Meta"** to those otherwise cool Ray-Ban Meta glasses, I'd get hit with **"I can't do that on your glasses."**
 
-The default settings are optimized for responses that are easily read back by smart glasses and concise enough for WhatsApp – but hey, it's your hack, feel free to tweak it!
+So I built **Neta**.
+Neta will *never* leave you hanging.
+You say: _"Hey Neta, send a picture to Capivara,"_ — and like magic, you get exactly what you asked for.
+Yeah, **"Hey Neta"** really works 😁.
+
+Some features aren't available everywhere 🌍 — but Neta makes sure your assistants are. Plus, you can pick your favourite AI to power it.
+
+It's fully chat-based because I wanted to make use of the plans I’ve already paid for.
+
+Anyway, cheers.
+
 
 **👉 Meet the Crew (Your AI Agents):**
 
