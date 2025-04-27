@@ -1,4 +1,4 @@
-# Meta Corp Museum
+# Neta Corp Museum
 
 <table>
 <tr>
