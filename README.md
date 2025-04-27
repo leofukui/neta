@@ -6,6 +6,7 @@ Ever wish you could just ping your favorite AI assistant directly from WhatsApp,
 
 This Python application connects WhatsApp Web to various AI platforms (ChatGPT, Claude, Gemini, Perplexity, Grok) using UI automation. It automatically grabs messages and images from your designated WhatsApp chats, sends them to the corresponding AI, and brings back the response.
 
+
 ## The Origin Story ✨🔮
 
 This project was vibe-coded in less than 24 hours, fuelled by mild annoyance.
@@ -105,6 +106,28 @@ Want to see the setup under the hood? Check out the [ARCHITECTURE.md](docs/ARCHI
         ```
 
 ### WhatsApp & AI Setup
+
+First, I recommend you to have 2 Whatspp accounts, since one will be active all the time. This is how I configured and tested this application.
+
+Use this dedicated Whatsapp when authenticating. Then for each agent you would like to integrate, you add a group with you and this Whatsapp. You can add more than one person even, so many people can interact with your AI :robot:
+
+This is how it looks like on yuour app:
+
+### WhatsApp & AI Setup 📱🤖
+
+First, I recommend having **two WhatsApp accounts**, since one will need to stay active all the time.
+This is how I configured and tested the application.
+
+👉 Use a **dedicated WhatsApp** account for authentication. Then, for each agent you want to integrate, create a **group** with you and this dedicated WhatsApp account.
+You can even add more people to the group, so multiple users can interact with your AI 🤖!
+
+**Here’s how it looks inside the app 😃**
+
+<p align="center">
+  <img src="./docs/whatsapp.webp" alt="All Agents" width="300"/>
+</p>
+
+#### Instructions
 
 1.  **Name Your Chats:** Ensure the WhatsApp chats you intend to use have the *exact same names* as the keys in your JSON configuration file (e.g., "Capivara", "Birdo", "Gemininas"). Tip: Create WhatsApp groups with these exact names.
 2.  **Launch Neta:** Run the application (see Usage section below).
