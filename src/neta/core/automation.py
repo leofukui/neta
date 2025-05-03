@@ -133,14 +133,14 @@ class NetaAutomation:
             message_type: Type of message ('text' or 'image')
 
         Returns:
-            AI response or None if failed
+            Tuple of (text_response, image_path) or (None, None) if failed
         """
         try:
             # Get AI configuration for this group
             ai_config = self.config.get_ai_config(group_name)
             if not ai_config:
                 logger.warning(f"No AI mapping found for group: {group_name}")
-                return None
+                return None, None
 
             # Get platform name from config
             platform_name = ai_config.get("api_platform", "").lower()
@@ -160,32 +160,33 @@ class NetaAutomation:
                 tab_name = ai_config["tab_name"]
                 if not self.browser_manager.switch_to_tab(tab_name):
                     logger.error(f"Failed to switch to tab: {tab_name}")
-                    return None
+                    return None, None
 
                 # Send message to AI platform
                 if message_type == "text":
                     logger.info(f"Processing text message for {group_name}")
                     response = self.ai_platform_ui.send_text_message(ai_config, message)
+                    # Browser UI doesn't support image generation yet
+                    return response, None
                 else:  # message_type == "image"
                     logger.info(f"Processing image message for {group_name}")
                     response = self.ai_platform_ui.send_image(ai_config, message)
+                    return response, None
 
                 # Refresh AI page to prepare for next interaction
                 if response:
                     self.ai_platform_ui.refresh_page()
 
-                return response
-
         except Exception as e:
             logger.error(f"Error processing message: {e}")
-            return None
+            return None, None
 
-    def send_response(self, response, group_name):
+    def send_response(self, response_data, group_name):
         """
         Send AI response back to WhatsApp.
 
         Args:
-            response: Response from AI
+            response_data: Response from AI (can be text or tuple of (text, image_path))
             group_name: WhatsApp group to send to
 
         Returns:
@@ -197,15 +198,31 @@ class NetaAutomation:
                 logger.error("Failed to switch to WhatsApp tab")
                 return False
 
-            # Select chat and send message
+            # Select chat
             if not self.whatsapp_ui.select_chat(group_name):
                 logger.error(f"Failed to select chat: {group_name}")
                 return False
 
+            # Handle different response formats
+            text_response = None
+            image_path = None
+
+            if isinstance(response_data, tuple) and len(response_data) == 2:
+                # Tuple format: (text_response, image_path)
+                text_response, image_path = response_data
+            elif isinstance(response_data, str):
+                # String format: just text response
+                text_response = response_data
+
             # Send message and cache sent response
-            success = self.whatsapp_ui.send_message(response)
+            success = self.whatsapp_ui.send_message(text_response, image_path)
             if success:
-                self.message_cache.cache_content(response, group_name)
+                # Cache the text response
+                if text_response:
+                    self.message_cache.cache_content(text_response, group_name)
+                # Cache the image path if there is one
+                if image_path:
+                    self.message_cache.cache_content(f"image:{image_path}", group_name)
                 logger.info("Sent and cached response")
 
             return success
@@ -243,7 +260,7 @@ class NetaAutomation:
                     # Check for new messages in configured groups
                     group_names = list(self.config.get_ai_mappings().keys())
                     group_name, message, message_type = self.whatsapp_ui.get_new_messages(
-                        group_names, self.message_cache, self.config
+                        group_names, self.message_cache
                     )
 
                     # Process new message if found
@@ -254,7 +271,9 @@ class NetaAutomation:
                         response = self.process_message(group_name, message, message_type)
 
                         # Send response back to WhatsApp
-                        if response:
+                        if response and (
+                            response[0] or response[1]
+                        ):  # If text or image is returned
                             self.send_response(response, group_name)
 
                     # Periodically cleanup temp files

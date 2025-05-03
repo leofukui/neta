@@ -34,7 +34,9 @@ class ClaudeClient(APIClient):
         self.client = Anthropic(api_key=self.api_key)
         logger.info("Initialized Claude API client")
 
-    def send_text_message(self, message: str, ai_config: Dict[str, Any]) -> Optional[str]:
+    def send_text_message(
+        self, message: str, ai_config: Dict[str, Any]
+    ) -> tuple[Optional[str], Optional[str]]:
         """
         Send text message to Claude API.
 
@@ -70,13 +72,15 @@ class ClaudeClient(APIClient):
             response_text = response.content[0].text
             logger.info(f"Received response from Claude API: {response_text[:50]}...")
 
-            return response_text
+            return response_text, None
 
         except Exception as e:
             logger.error(f"Error sending text to Claude API: {e}")
-            return None
+            return None, None
 
-    def send_image(self, image_path: str, ai_config: Dict[str, Any]) -> Optional[str]:
+    def send_image(
+        self, image_path: str, ai_config: Dict[str, Any]
+    ) -> tuple[Optional[str], Optional[str]]:
         """
         Send image to Claude API using vision capabilities.
 
@@ -135,8 +139,8 @@ class ClaudeClient(APIClient):
             response_text = response.content[0].text
             logger.info(f"Received image description from Claude API: {response_text}")
 
-            return response_text
+            return response_text, None
 
         except Exception as e:
             logger.error(f"Error sending image to Claude API: {e}")
-            return None
+            return None, None

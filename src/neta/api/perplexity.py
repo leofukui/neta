@@ -38,7 +38,9 @@ class PerplexityClient(APIClient):
 
         logger.info("Initialized Perplexity API client")
 
-    def send_text_message(self, message: str, ai_config: Dict[str, Any]) -> Optional[str]:
+    def send_text_message(
+        self, message: str, ai_config: Dict[str, Any]
+    ) -> tuple[Optional[str], Optional[str]]:
         """
         Send text message to Perplexity API.
 
@@ -95,7 +97,7 @@ class PerplexityClient(APIClient):
             # Check for successful response
             if not response.ok:
                 logger.error(f"Perplexity API error: {response.status_code} - {response.text}")
-                return None
+                return None, None
 
             # Parse response JSON
             response_data = response.json()
@@ -109,19 +111,21 @@ class PerplexityClient(APIClient):
             )
             logger.info(f"Received response from Perplexity API: {response_text[:50]}...")
 
-            return response_text
+            return response_text, None
 
         except requests.exceptions.RequestException as e:
             logger.error(f"Request error with Perplexity API: {e}")
-            return None
+            return None, None
         except json.JSONDecodeError as e:
             logger.error(f"JSON decode error with Perplexity API response: {e}")
-            return None
+            return None, None
         except Exception as e:
             logger.error(f"Error sending text to Perplexity API: {e}")
-            return None
+            return None, None
 
-    def send_image(self, image_path: str, ai_config: Dict[str, Any]) -> Optional[str]:
+    def send_image(
+        self, image_path: str, ai_config: Dict[str, Any]
+    ) -> tuple[Optional[str], Optional[str]]:
         """
         Send image to Perplexity API.
 
@@ -206,7 +210,7 @@ class PerplexityClient(APIClient):
                 logger.warning(
                     "Perplexity API may not support image inputs; falling back to browser automation"
                 )
-                return None
+                return None, None
 
             # Parse response JSON
             response_data = response.json()
@@ -217,7 +221,7 @@ class PerplexityClient(APIClient):
             )
             logger.info(f"Received image description from Perplexity API: {response_text}")
 
-            return response_text
+            return response_text, None
 
         except requests.exceptions.RequestException as e:
             error_message = str(e)
@@ -228,4 +232,4 @@ class PerplexityClient(APIClient):
             return None
         except Exception as e:
             logger.error(f"Error sending image to Perplexity API: {e}")
-            return None
+            return None, None

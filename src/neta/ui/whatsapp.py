@@ -1,10 +1,9 @@
 import logging
 import os
-import re
 import time
 
 import pyperclip
-from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
@@ -33,6 +32,8 @@ class WhatsAppUI:
         self.image_download_delay = float(os.getenv("IMAGE_DOWNLOAD_DELAY", "2"))
         self.viewer_load_delay = float(os.getenv("VIEWER_LOAD_DELAY", "1"))
         self.viewer_close_delay = float(os.getenv("VIEWER_CLOSE_DELAY", "1"))
+        self.paste_delay = float(os.getenv("PASTE_DELAY", "0.5"))
+        self.os_type = os.getenv("OS_TYPE", "macos").lower()  # Default to macOS
 
     def select_chat(self, group_name):
         """
@@ -66,26 +67,17 @@ class WhatsAppUI:
             logger.error(f"Error selecting chat: {e}")
             return False
 
-    def get_new_messages(self, group_names, message_cache, config=None):
+    def get_new_messages(self, group_names, message_cache):
         """
         Check for new messages in WhatsApp groups.
 
         Args:
             group_names: List of WhatsApp group names to check
             message_cache: MessageCache instance for tracking processed messages
-            config: Config instance containing configuration
 
         Returns:
             Tuple of (group_name, message, message_type) or (None, None, None) if no new messages
         """
-        # Extract contacts to ignore from config
-        ignore_users = []
-        if config:
-            # Get ignored_contacts from the config
-            ignore_users = config.config.get("ignored_contacts", [])
-            if ignore_users:
-                logger.info(f"Ignoring messages from contacts: {', '.join(ignore_users)}")
-
         try:
             # Wait for the chat list to load
             WebDriverWait(self.driver, 10).until(
@@ -128,14 +120,6 @@ class WhatsAppUI:
 
                 # If we're here, the latest message is an incoming message (message-in)
 
-                # Check if the message is from a user we should ignore
-                sender_name = self._get_message_sender(latest_container)
-                if sender_name and any(
-                    name.lower() in sender_name.lower() for name in ignore_users
-                ):
-                    logger.debug(f"Ignoring message from {sender_name} in {group_name}")
-                    continue
-
                 # Check for images in the latest incoming message
                 result = self._check_for_image(latest_container, group_name, message_cache)
                 if result:
@@ -150,55 +134,7 @@ class WhatsAppUI:
             return None, None, None
         except Exception as e:
             logger.error(f"Error fetching WhatsApp messages: {e}")
-        return None, None, None
-
-    def _get_message_sender(self, container):
-        """
-        Get the sender's name from a message container.
-
-        Args:
-            container: Message container element
-
-        Returns:
-            Sender's name or empty string if not found
-        """
-        try:
-            # Look for sender name element
-            # In WhatsApp Web, the sender name is typically in a specific format
-            # Try multiple selector strategies to find it
-
-            # Strategy 1: Look for the sender name directly
-            sender_elements = container.find_elements(
-                By.CSS_SELECTOR, "div.copyable-text span.selectable-text"
-            )
-
-            # In group chats, the sender name is usually the first element
-            if sender_elements and len(sender_elements) > 0:
-                return sender_elements[0].text
-
-            # Strategy 2: Try to extract from data attribute
-            data_elements = container.find_elements(By.CSS_SELECTOR, "div[data-pre-plain-text]")
-            if data_elements:
-                # The data-pre-plain-text attribute contains something like "[10:30 AM, 5/3/2025] John Doe: "
-                pre_text = data_elements[0].get_attribute("data-pre-plain-text")
-                if pre_text:
-                    # Extract the name from the format using regex
-                    import re
-
-                    match = re.search(r"\] (.*?):", pre_text)
-                    if match:
-                        return match.group(1).strip()
-
-            # Strategy 3: Try to find the quoted sender name attribute
-            quoted_elements = container.find_elements(By.CSS_SELECTOR, "div.quoted-mention")
-            if quoted_elements:
-                return quoted_elements[0].text
-
-            logger.debug("Could not determine message sender")
-            return ""
-        except Exception as e:
-            logger.error(f"Error getting message sender: {e}")
-            return ""
+            return None, None, None
 
     def _check_for_image(self, container, group_name, message_cache):
         """
@@ -451,12 +387,13 @@ class WhatsAppUI:
             logger.error(f"Error closing image viewer: {e}")
             return False
 
-    def send_message(self, message):
+    def send_message(self, message, image_path=None):
         """
         Send a message to the current WhatsApp chat.
 
         Args:
-            message: Message text to send
+            message: Message text to send (can be None if only sending image)
+            image_path: Optional path to image file to send
 
         Returns:
             Boolean indicating success
@@ -467,10 +404,123 @@ class WhatsAppUI:
                 logger.error("No active chat selected")
                 return False
 
-            # Use clipboard to handle special characters reliably
-            pyperclip.copy(message)
+            # If we have an image to send, handle it first
+            if image_path:
+                if not self._send_image(image_path):
+                    logger.error("Failed to send image")
+                    # Still try to send the text message if image fails
 
-            # Find and interact with the input field
+            # If we have a text message to send
+            if message and message.strip():
+                # Use clipboard to handle special characters reliably
+                pyperclip.copy(message)
+
+                # Find and interact with the input field
+                input_field = WebDriverWait(self.driver, 10).until(
+                    EC.presence_of_element_located(
+                        (By.CSS_SELECTOR, "div[aria-label='Type a message']")
+                    )
+                )
+                input_field.click()
+
+                # Paste message using keyboard shortcut
+                actions = ActionChains(self.driver)
+                if self.os_type == "macos":
+                    actions.key_down(Keys.COMMAND).send_keys("v").key_up(Keys.COMMAND).perform()
+                else:
+                    actions.key_down(Keys.CONTROL).send_keys("v").key_up(Keys.CONTROL).perform()
+
+                # Send message
+                input_field.send_keys(Keys.ENTER)
+                logger.info(f"Sent message to WhatsApp: {message[:50]}...")
+
+            return True
+        except Exception as e:
+            logger.error(f"Error sending to WhatsApp: {e}")
+            return False
+
+    def _send_image(self, image_path):
+        """
+        Send an image to the current WhatsApp chat.
+
+        Args:
+            image_path: Path to image file
+
+        Returns:
+            Boolean indicating success
+        """
+        try:
+            logger.info(f"Attempting to send image: {image_path}")
+
+            # Find and click the attachment button
+            attachment_buttons = self.driver.find_elements(
+                By.CSS_SELECTOR,
+                "span[data-icon='attach'], span[data-icon='clip'], button[aria-label='Attach'], div[aria-label='Attach']",
+            )
+
+            if attachment_buttons:
+                # Click the first matching attachment button
+                attachment_buttons[0].click()
+                logger.info("Clicked attachment button")
+                time.sleep(1)  # Wait for attachment options to appear
+
+                # Try to find the image option
+                image_options = self.driver.find_elements(
+                    By.XPATH,
+                    "//span[contains(text(), 'Images') or contains(text(), 'Photos')]/ancestor::div[@role='button']"
+                    + "|//div[contains(@aria-label, 'Image') or contains(@aria-label, 'Photo')]",
+                )
+
+                # If direct image options found, use them
+                if image_options:
+                    image_options[0].click()
+                    logger.info("Clicked image option")
+                    # Now we should get a file dialog, but we'll use clipboard instead
+                    # Cancel the file dialog by pressing Escape
+                    time.sleep(0.5)
+                    ActionChains(self.driver).send_keys(Keys.ESCAPE).perform()
+                    logger.info("Cancelled file dialog")
+                else:
+                    # Cancel attachment menu
+                    ActionChains(self.driver).send_keys(Keys.ESCAPE).perform()
+                    logger.info("Cancelled attachment menu")
+
+            # Use clipboard approach to paste image (more reliable)
+            return self._paste_image_from_clipboard(image_path)
+
+        except Exception as e:
+            logger.error(f"Error attempting to send image: {e}")
+            return False
+
+    def _paste_image_from_clipboard(self, image_path):
+        """
+        Copy image to clipboard and paste into WhatsApp.
+
+        Args:
+            image_path: Path to image file
+
+        Returns:
+            Boolean indicating success
+        """
+        try:
+            # For macOS, use osascript to copy image to clipboard
+            if self.os_type == "macos":
+                # Using osascript to copy image to clipboard
+                copy_script = f"""osascript -e 'set imageFile to POSIX file "{image_path}"
+                set the clipboard to (read imageFile as TIFF picture)'
+                """
+                os.system(copy_script)
+                logger.info("Copied image to clipboard using osascript")
+
+            else:
+                # For Windows/Linux, use other methods (not implemented yet)
+                logger.error("Image clipboard operations not implemented for non-macOS systems")
+                return False
+
+            # Wait for clipboard to be populated
+            time.sleep(self.paste_delay)
+
+            # Find input field
             input_field = WebDriverWait(self.driver, 10).until(
                 EC.presence_of_element_located(
                     (By.CSS_SELECTOR, "div[aria-label='Type a message']")
@@ -478,15 +528,34 @@ class WhatsAppUI:
             )
             input_field.click()
 
-            # Paste message using keyboard shortcut
+            # Paste image using keyboard shortcut
             actions = ActionChains(self.driver)
-            actions.key_down(Keys.COMMAND).send_keys("v").key_up(Keys.COMMAND).perform()
+            if self.os_type == "macos":
+                actions.key_down(Keys.COMMAND).send_keys("v").key_up(Keys.COMMAND).perform()
+            else:
+                actions.key_down(Keys.CONTROL).send_keys("v").key_up(Keys.CONTROL).perform()
 
-            # Send message
-            input_field.send_keys(Keys.ENTER)
-            logger.info(f"Sent message to WhatsApp: {message[:50]}...")
+            logger.info("Pasted image from clipboard")
+            time.sleep(2)  # Wait for image to be processed
 
-            return True
+            # Look for send button after image is pasted
+            send_buttons = self.driver.find_elements(
+                By.CSS_SELECTOR,
+                "span[data-icon='send'], button[aria-label='Send'], div[aria-label='Send']",
+            )
+
+            if send_buttons:
+                send_buttons[0].click()
+                logger.info("Clicked send button for image")
+                time.sleep(1)  # Wait for image to be sent
+                return True
+            else:
+                # Try using Enter key instead
+                input_field.send_keys(Keys.ENTER)
+                logger.info("Used Enter key to send image")
+                time.sleep(1)
+                return True
+
         except Exception as e:
-            logger.error(f"Error sending to WhatsApp: {e}")
+            logger.error(f"Error pasting image from clipboard: {e}")
             return False

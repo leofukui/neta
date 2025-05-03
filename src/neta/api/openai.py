@@ -33,7 +33,9 @@ class OpenAIClient(APIClient):
         self.client = OpenAI(api_key=self.api_key)
         logger.info(f"Initialized OpenAI API client")
 
-    def send_text_message(self, message: str, ai_config: Dict[str, Any]) -> Optional[str]:
+    def send_text_message(
+        self, message: str, ai_config: Dict[str, Any]
+    ) -> tuple[Optional[str], Optional[str]]:
         """
         Send text message to OpenAI API.
 
@@ -69,13 +71,15 @@ class OpenAIClient(APIClient):
             response_text = response.choices[0].message.content.strip()
             logger.info(f"Received response from OpenAI API: {response_text[:50]}...")
 
-            return response_text
+            return response_text, None
 
         except Exception as e:
             logger.error(f"Error sending text to OpenAI API: {e}")
-            return None
+            return None, None
 
-    def send_image(self, image_path: str, ai_config: Dict[str, Any]) -> Optional[str]:
+    def send_image(
+        self, image_path: str, ai_config: Dict[str, Any]
+    ) -> tuple[Optional[str], Optional[str]]:
         """
         Send image to OpenAI API using vision capabilities.
 
@@ -133,8 +137,8 @@ class OpenAIClient(APIClient):
             response_text = response.choices[0].message.content.strip()
             logger.info(f"Received image description from OpenAI API: {response_text}")
 
-            return response_text
+            return response_text, None
 
         except Exception as e:
             logger.error(f"Error sending image to OpenAI API: {e}")
-            return None
+            return None, None

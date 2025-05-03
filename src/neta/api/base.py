@@ -22,7 +22,9 @@ class APIClient(ABC):
         pass
 
     @abstractmethod
-    def send_text_message(self, message: str, ai_config: Dict[str, Any]) -> Optional[str]:
+    def send_text_message(
+        self, message: str, ai_config: Dict[str, Any]
+    ) -> tuple[Optional[str], Optional[str]]:
         """
         Send text message to AI service API.
 
@@ -31,12 +33,14 @@ class APIClient(ABC):
             ai_config: AI configuration dictionary with platform settings
 
         Returns:
-            AI response text or None if failed
+            Tuple of (AI response text, image_path) where image_path is None if no image was generated
         """
         pass
 
     @abstractmethod
-    def send_image(self, image_path: str, ai_config: Dict[str, Any]) -> Optional[str]:
+    def send_image(
+        self, image_path: str, ai_config: Dict[str, Any]
+    ) -> tuple[Optional[str], Optional[str]]:
         """
         Send image to AI service API.
 
@@ -45,7 +49,7 @@ class APIClient(ABC):
             ai_config: AI configuration dictionary with platform settings
 
         Returns:
-            AI response text or None if failed
+            Tuple of (AI response text, image_path) where image_path is None if no image was generated
         """
         pass
 

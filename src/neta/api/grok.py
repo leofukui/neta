@@ -41,7 +41,9 @@ class GrokClient(APIClient):
 
         logger.info("Initialized Grok API client")
 
-    def send_text_message(self, message: str, ai_config: Dict[str, Any]) -> Optional[str]:
+    def send_text_message(
+        self, message: str, ai_config: Dict[str, Any]
+    ) -> tuple[Optional[str], Optional[str]]:
         """
         Send text message to Grok API.
 
@@ -111,7 +113,7 @@ class GrokClient(APIClient):
                     logger.error(
                         f"Fallback Grok API error: {response.status_code} - {response.text}"
                     )
-                    return None
+                    return None, None
 
             # Parse response JSON
             response_data = response.json()
@@ -125,7 +127,7 @@ class GrokClient(APIClient):
             )
             logger.info(f"Received response from Grok API: {response_text[:50]}...")
 
-            return response_text
+            return response_text, None
 
         except requests.exceptions.RequestException as e:
             logger.error(f"Request error with Grok API: {e}")
@@ -140,7 +142,9 @@ class GrokClient(APIClient):
             logger.error(f"Error sending text to Grok API: {e}")
             return None
 
-    def send_image(self, image_path: str, ai_config: Dict[str, Any]) -> Optional[str]:
+    def send_image(
+        self, image_path: str, ai_config: Dict[str, Any]
+    ) -> tuple[Optional[str], Optional[str]]:
         """
         Send image to Grok API.
 
@@ -232,7 +236,7 @@ class GrokClient(APIClient):
                     logger.warning(
                         "Grok API may not support image inputs; falling back to browser automation"
                     )
-                    return None
+                    return None, None
 
             # Parse response JSON
             response_data = response.json()
@@ -243,7 +247,7 @@ class GrokClient(APIClient):
             )
             logger.info(f"Received image description from Grok API: {response_text}")
 
-            return response_text
+            return response_text, None
 
         except requests.exceptions.RequestException as e:
             error_message = str(e)
@@ -257,7 +261,7 @@ class GrokClient(APIClient):
                 logger.warning("DNS resolution error. Consider updating GROK_API_URL in .env")
 
             logger.warning("Falling back to browser automation")
-            return None
+            return None, None
         except Exception as e:
             logger.error(f"Error sending image to Grok API: {e}")
-            return None
+            return None, None
