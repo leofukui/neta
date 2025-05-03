@@ -2,9 +2,10 @@
 
 **(Your Pocket AI Bridge, Built with Python & Shenanigans)**
 
-Ever wish you could just ping your favorite AI assistant directly from WhatsApp, perhaps even send it a picture you just snapped with your fancy smart glasses? Neta is here to (hackily) make that happen!
+Ever wish you could just ping your favorite AI assistant directly from WhatsApp, perhaps even send it a picture you just snapped with your fancy smart glasses? Neta is here to make that happen!
 
-This Python application connects WhatsApp Web to various AI platforms (ChatGPT, Claude, Gemini, Perplexity, Grok) using UI automation. It automatically grabs messages and images from your designated WhatsApp chats, sends them to the corresponding AI, and brings back the response.
+This Python application connects WhatsApp Web to various AI platforms (ChatGPT, Claude, Gemini, Perplexity, Grok) using UI automation or API integration.
+It automatically grabs messages and images from your designated WhatsApp chats, sends them to the corresponding AI, and brings back the response.
 
 
 ## The Origin Story ✨🔮
@@ -38,8 +39,6 @@ Curious about the agents? Dive into the [Museum Section](./docs/museum/README.md
 
 ## 🚨 Important Warnings & Disclaimers 🚨
 
-* **UI Automation, Not APIs:** This project interacts with the *web interfaces* of WhatsApp and the AI platforms. It's **hacky** and relies on screen scraping and UI element interaction. This means it can break if/when those websites change their layout. It does *not* use official APIs.
-* **Use Your Own Accounts:** Neta bridges *your* WhatsApp account to *your* AI service accounts. You need to be logged into these services in the browser tabs that Neta controls.
 * **Potential Costs:** Using Neta will utilize your existing subscriptions/credits on the connected AI platforms just as if you were using their websites directly. Any associated costs are your responsibility.
 * **AI Built This (Mostly):** This project is proudly ~95% AI-generated and ~5% human-debugged. 🤖👨‍💻 Expect quirks!
 

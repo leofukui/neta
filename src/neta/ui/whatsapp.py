@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 import time
 
 import pyperclip
@@ -65,17 +66,26 @@ class WhatsAppUI:
             logger.error(f"Error selecting chat: {e}")
             return False
 
-    def get_new_messages(self, group_names, message_cache):
+    def get_new_messages(self, group_names, message_cache, config=None):
         """
         Check for new messages in WhatsApp groups.
 
         Args:
             group_names: List of WhatsApp group names to check
             message_cache: MessageCache instance for tracking processed messages
+            config: Config instance containing configuration
 
         Returns:
             Tuple of (group_name, message, message_type) or (None, None, None) if no new messages
         """
+        # Extract contacts to ignore from config
+        ignore_users = []
+        if config:
+            # Get ignored_contacts from the config
+            ignore_users = config.config.get("ignored_contacts", [])
+            if ignore_users:
+                logger.info(f"Ignoring messages from contacts: {', '.join(ignore_users)}")
+
         try:
             # Wait for the chat list to load
             WebDriverWait(self.driver, 10).until(
@@ -118,6 +128,14 @@ class WhatsAppUI:
 
                 # If we're here, the latest message is an incoming message (message-in)
 
+                # Check if the message is from a user we should ignore
+                sender_name = self._get_message_sender(latest_container)
+                if sender_name and any(
+                    name.lower() in sender_name.lower() for name in ignore_users
+                ):
+                    logger.debug(f"Ignoring message from {sender_name} in {group_name}")
+                    continue
+
                 # Check for images in the latest incoming message
                 result = self._check_for_image(latest_container, group_name, message_cache)
                 if result:
@@ -132,7 +150,55 @@ class WhatsAppUI:
             return None, None, None
         except Exception as e:
             logger.error(f"Error fetching WhatsApp messages: {e}")
-            return None, None, None
+        return None, None, None
+
+    def _get_message_sender(self, container):
+        """
+        Get the sender's name from a message container.
+
+        Args:
+            container: Message container element
+
+        Returns:
+            Sender's name or empty string if not found
+        """
+        try:
+            # Look for sender name element
+            # In WhatsApp Web, the sender name is typically in a specific format
+            # Try multiple selector strategies to find it
+
+            # Strategy 1: Look for the sender name directly
+            sender_elements = container.find_elements(
+                By.CSS_SELECTOR, "div.copyable-text span.selectable-text"
+            )
+
+            # In group chats, the sender name is usually the first element
+            if sender_elements and len(sender_elements) > 0:
+                return sender_elements[0].text
+
+            # Strategy 2: Try to extract from data attribute
+            data_elements = container.find_elements(By.CSS_SELECTOR, "div[data-pre-plain-text]")
+            if data_elements:
+                # The data-pre-plain-text attribute contains something like "[10:30 AM, 5/3/2025] John Doe: "
+                pre_text = data_elements[0].get_attribute("data-pre-plain-text")
+                if pre_text:
+                    # Extract the name from the format using regex
+                    import re
+
+                    match = re.search(r"\] (.*?):", pre_text)
+                    if match:
+                        return match.group(1).strip()
+
+            # Strategy 3: Try to find the quoted sender name attribute
+            quoted_elements = container.find_elements(By.CSS_SELECTOR, "div.quoted-mention")
+            if quoted_elements:
+                return quoted_elements[0].text
+
+            logger.debug("Could not determine message sender")
+            return ""
+        except Exception as e:
+            logger.error(f"Error getting message sender: {e}")
+            return ""
 
     def _check_for_image(self, container, group_name, message_cache):
         """

@@ -2,6 +2,7 @@ import os
 import time
 
 from ..core.config import Config
+from ..core.integration import IntegrationManager
 from ..ui.ai_platforms import AIPlatformUI
 from ..ui.browser import BrowserManager
 from ..ui.whatsapp import WhatsAppUI
@@ -39,27 +40,82 @@ class NetaAutomation:
         self.image_manager = ImageManager()
         logger.info(f"Initialized image manager: {self.image_manager.image_dir}")
 
+        # Check if we need browser for AI interactions based on config
+        self.use_browser_for_ai = self._check_if_browser_needed_for_ai()
+
         # Initialize browser manager
         self.browser_manager = BrowserManager(self.image_manager.image_dir)
 
         # UI components will be initialized when browser is ready
         self.whatsapp_ui = None
         self.ai_platform_ui = None
+        self.integration_manager = None
+
+    def _check_if_browser_needed_for_ai(self):
+        """
+        Check if browser is needed for any AI platform based on configuration.
+
+        Returns:
+            Boolean indicating if browser is needed for any AI platform
+        """
+        # Get all AI mappings from config
+        ai_mappings = self.config.get_ai_mappings()
+
+        # For each mapping, check if it requires browser
+        for group_name, ai_config in ai_mappings.items():
+            # Get platform name
+            platform_name = ai_config.get("api_platform", "").lower()
+            if not platform_name:
+                # If api_platform not specified, browser is needed
+                logger.info(f"Browser needed because {group_name} has no api_platform defined")
+                return True
+
+            # Check if API is enabled for this platform
+            platform_upper = platform_name.upper()
+            use_api = os.getenv(f"USE_{platform_upper}_API", "false").lower() == "true"
+
+            # If any platform is not using API, we need browser
+            if not use_api:
+                logger.info(f"Browser needed because {platform_name} is not using API")
+                return True
+
+        logger.info("All AI platforms are using APIs, no browser needed for AI")
+        return False
 
     def setup(self):
         """Set up browser and UI components."""
         try:
-            # Set up browser with WhatsApp and AI platform tabs
+            # Set up browser with WhatsApp and AI platform tabs if needed
             logger.info("Setting up browser")
-            self.browser_manager.setup_browser(
-                self.config.get_whatsapp_url(),
-                self.config.get_ai_mappings(),
-                self.config.login_wait_delay,
-            )
 
-            # Initialize UI components
+            # If using browser for AI, include AI tabs in setup
+            if self.use_browser_for_ai:
+                self.browser_manager.setup_browser(
+                    self.config.get_whatsapp_url(),
+                    self.config.get_ai_mappings(),
+                    self.config.login_wait_delay,
+                )
+            else:
+                # Only set up WhatsApp tab
+                self.browser_manager.setup_browser(
+                    self.config.get_whatsapp_url(),
+                    {},  # No AI mappings needed
+                    self.config.login_wait_delay,
+                )
+
+            # Initialize WhatsApp UI
             self.whatsapp_ui = WhatsAppUI(self.browser_manager.driver, self.image_manager)
-            self.ai_platform_ui = AIPlatformUI(self.browser_manager.driver)
+
+            # Initialize AI platform UI if needed
+            if self.use_browser_for_ai:
+                self.ai_platform_ui = AIPlatformUI(self.browser_manager.driver)
+
+            # Initialize integration manager
+            self.integration_manager = IntegrationManager(
+                self.config,
+                self.browser_manager.driver,
+                self.ai_platform_ui if self.use_browser_for_ai else None,
+            )
 
             logger.info("Setup completed successfully")
             return True
@@ -86,25 +142,40 @@ class NetaAutomation:
                 logger.warning(f"No AI mapping found for group: {group_name}")
                 return None
 
-            # Switch to AI platform tab
-            tab_name = ai_config["tab_name"]
-            if not self.browser_manager.switch_to_tab(tab_name):
-                logger.error(f"Failed to switch to tab: {tab_name}")
-                return None
+            # Get platform name from config
+            platform_name = ai_config.get("api_platform", "").lower()
 
-            # Send message to AI platform
-            if message_type == "text":
-                logger.info(f"Processing text message for {group_name}")
-                response = self.ai_platform_ui.send_text_message(ai_config, message)
-            else:  # message_type == "image"
-                logger.info(f"Processing image message for {group_name}")
-                response = self.ai_platform_ui.send_image(ai_config, message)
+            # Check if using API for this platform
+            use_api = os.getenv(f"USE_{platform_name.upper()}_API", "false").lower() == "true"
 
-            # Refresh AI page to prepare for next interaction
-            if response:
-                self.ai_platform_ui.refresh_page()
+            if use_api and platform_name:
+                # Use integration manager to handle API request
+                logger.info(f"Using API integration for {group_name} ({platform_name})")
+                return self.integration_manager.process_message(group_name, message, message_type)
+            else:
+                # Use browser automation (original method)
+                logger.info(f"Using browser automation for {group_name}")
 
-            return response
+                # Switch to AI platform tab
+                tab_name = ai_config["tab_name"]
+                if not self.browser_manager.switch_to_tab(tab_name):
+                    logger.error(f"Failed to switch to tab: {tab_name}")
+                    return None
+
+                # Send message to AI platform
+                if message_type == "text":
+                    logger.info(f"Processing text message for {group_name}")
+                    response = self.ai_platform_ui.send_text_message(ai_config, message)
+                else:  # message_type == "image"
+                    logger.info(f"Processing image message for {group_name}")
+                    response = self.ai_platform_ui.send_image(ai_config, message)
+
+                # Refresh AI page to prepare for next interaction
+                if response:
+                    self.ai_platform_ui.refresh_page()
+
+                return response
+
         except Exception as e:
             logger.error(f"Error processing message: {e}")
             return None
@@ -172,7 +243,7 @@ class NetaAutomation:
                     # Check for new messages in configured groups
                     group_names = list(self.config.get_ai_mappings().keys())
                     group_name, message, message_type = self.whatsapp_ui.get_new_messages(
-                        group_names, self.message_cache
+                        group_names, self.message_cache, self.config
                     )
 
                     # Process new message if found

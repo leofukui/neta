@@ -4,33 +4,61 @@
       "url": "https://chat.openai.com/",
       "tab_name": "ChatGPT",
       "input_selector": "#prompt-textarea",
-      "response_selector": ".\\@thread-xl\\/thread\\:pt-header-height article div[data-message-author-role='assistant']"
+      "response_selector": ".\\@thread-xl\\/thread\\:pt-header-height article div[data-message-author-role='assistant']",
+      "api_platform": "openai",
+      "api_model": "chatgpt-4o-latest",
+      "api_vision_model": "chatgpt-4o-latest",
+      "text_prompt_template": "Respond in 50 characters or fewer, unless asked for complete message, then 600 chars are allowed. If asked for translation, only translate (fully). If asked 'complete', write a full description suitable for whatsapp (no emoji and only ascii chars): {message}",
+      "image_prompt_template": "Describe the image in 60 characters or fewer, with useful detail (product name, model, specie). Do not use emojis or invalid characters (only ascii)."
     },
     "Perplexo": {
       "url": "https://www.perplexity.ai/",
       "tab_name": "Perplexity",
       "input_selector": "textarea[placeholder^='Ask']",
       "response_selector": "div[id^='markdown-content-'] > div",
-      "wait_seconds": 10
+      "wait_seconds": 10,
+      "api_platform": "perplexity",
+      "api_model": "sonar",
+      "api_vision_model": "sonar",
+      "text_prompt_template": "Respond in 50 characters or fewer, unless asked for complete message, then 600 chars are allowed. If asked for translation, only translate (fully). If asked 'complete', write a full description suitable for whatsapp (no emoji and only ascii chars): {message}",
+      "image_prompt_template": "Describe the image in 60 characters or fewer, with useful detail (product name, model, specie). Do not use emojis or invalid characters (only ascii)."
     },
     "Gemininas": {
       "url": "https://gemini.google.com/",
       "tab_name": "Gemini",
       "input_selector": "div[data-placeholder='Ask Gemini']",
-      "response_selector": ".response-container:last-child .markdown"
+      "response_selector": ".response-container:last-child .markdown",
+      "api_platform": "gemini",
+      "api_model": "gemini-2.0-flash-lite",
+      "api_vision_model": "gemini-2.0-flash-lite",
+      "text_prompt_template": "Respond in 50 characters or fewer, unless asked for complete message, then 600 chars are allowed. If asked for translation, only translate (fully). If asked 'complete', write a full description suitable for whatsapp (no emoji and only ascii chars): {message}",
+      "image_prompt_template": "Describe the image in 60 characters or fewer, with useful detail (product name, model, specie). Do not use emojis or invalid characters (only ascii)."
     },
     "Birdo": {
       "url": "https://grok.com/",
       "tab_name": "Grok",
       "input_selector": "textarea[aria-label^='Ask']",
-      "response_selector": ".message-bubble"
+      "response_selector": ".message-bubble",
+      "api_platform": "grok",
+      "api_model": "grok-3-mini-beta",
+      "api_vision_model": "grok-2-vision-latest",
+      "text_prompt_template": "Respond in 50 characters or fewer, unless asked for complete message, then 600 chars are allowed. If asked for translation, only translate (fully). If asked 'complete', write a full description suitable for whatsapp (no emoji and only ascii chars): {message}",
+      "image_prompt_template": "Describe the image in 60 characters or fewer, with useful detail (product name, model, specie). Do not use emojis or invalid characters (only ascii)."
     },
     "Claudio": {
       "url": "https://claude.ai/",
       "tab_name": "Claude",
       "input_selector": "p[data-placeholder='How can I help you today?'], p[data-placeholder='Reply to Claude...']",
-      "response_selector": "div[data-is-streaming]"
+      "response_selector": "div[data-is-streaming]",
+      "api_platform": "claude",
+      "api_model": "claude-3-7-sonnet-latest",
+      "api_vision_model": "claude-3-7-sonnet-latest",
+      "text_prompt_template": "Respond in 50 characters or fewer, unless asked for complete message, then 600 chars are allowed. If asked for translation, only translate (fully). If asked 'complete', write a full description suitable for whatsapp (no emoji and only ascii chars): {message}",
+      "image_prompt_template": "Describe the image in 60 characters or fewer, with useful detail (product name, model, specie). Do not use emojis or invalid characters (only ascii)."
     }
   },
+  "ignored_contacts": [
+    "He"
+  ],
   "whatsapp_url": "https://web.whatsapp.com/"
 }
