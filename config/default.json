@@ -42,7 +42,7 @@
       "api_platform": "gemini",
       "api_model": "gemini-2.0-flash-lite",
       "api_vision_model": "gemini-2.0-flash-lite",
-      "api_image_model": "gemini-2.0-flash-exp-image-generation",
+      "api_image_model": "imagen-3.0-generate-002",
       "enable_image_generation": true,
       "image_temperature": 0.9,
       "text_prompt_template": "{message}",
