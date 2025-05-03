@@ -8,8 +8,8 @@
       "api_platform": "openai",
       "api_model": "chatgpt-4o-latest",
       "api_vision_model": "chatgpt-4o-latest",
-      "text_prompt_template": "Respond in 50 characters or fewer, unless asked for complete message, then 600 chars are allowed. If asked for translation, only translate (fully). If asked 'complete', write a full description suitable for whatsapp (no emoji and only ascii chars): {message}",
-      "image_prompt_template": "Describe the image in 60 characters or fewer, with useful detail (product name, model, specie). Do not use emojis or invalid characters (only ascii)."
+      "text_prompt_template": "Respond in 60 characters or fewer with meaningful output only, unless asked for complete message, then 600 chars are allowed. If asked for translation, only translate (fully). If asked 'complete'. (no emoji and only ascii chars), task: {message}",
+      "image_prompt_template": "Describe the image in 60 characters or fewer, with useful detail (product name, model, specie, location). Do not use emojis or invalid characters (only ascii)."
     },
     "Perplexo": {
       "url": "https://www.perplexity.ai/",
@@ -20,8 +20,8 @@
       "api_platform": "perplexity",
       "api_model": "sonar",
       "api_vision_model": "sonar",
-      "text_prompt_template": "Respond in 50 characters or fewer, unless asked for complete message, then 600 chars are allowed. If asked for translation, only translate (fully). If asked 'complete', write a full description suitable for whatsapp (no emoji and only ascii chars): {message}",
-      "image_prompt_template": "Describe the image in 60 characters or fewer, with useful detail (product name, model, specie). Do not use emojis or invalid characters (only ascii)."
+      "text_prompt_template": "Respond in 60 characters or fewer with meaningful output only, unless asked for complete message, then 600 chars are allowed. If asked for translation, only translate (fully). If asked 'complete'. (no emoji and only ascii chars), task: {message}",
+      "image_prompt_template": "Describe the image in 60 characters or fewer, with useful detail (product name, model, specie, location). Do not use emojis or invalid characters (only ascii)."
     },
     "Gemininas": {
       "url": "https://gemini.google.com/",
@@ -31,19 +31,8 @@
       "api_platform": "gemini",
       "api_model": "gemini-2.0-flash-lite",
       "api_vision_model": "gemini-2.0-flash-lite",
-      "text_prompt_template": "Respond in 50 characters or fewer, unless asked for complete message, then 600 chars are allowed. If asked for translation, only translate (fully). If asked 'complete', write a full description suitable for whatsapp (no emoji and only ascii chars): {message}",
-      "image_prompt_template": "Describe the image in 60 characters or fewer, with useful detail (product name, model, specie). Do not use emojis or invalid characters (only ascii)."
-    },
-    "Gemininas": {
-      "url": "https://gemini.google.com/",
-      "tab_name": "Gemini",
-      "input_selector": "div[data-placeholder='Ask Gemini']",
-      "response_selector": ".response-container:last-child .markdown",
-      "api_platform": "gemini",
-      "api_model": "gemini-2.0-flash-lite",
-      "api_vision_model": "gemini-2.0-flash-lite",
-      "text_prompt_template": "Respond in 50 characters or fewer, unless asked for complete message, then 600 chars are allowed. If asked for translation, only translate (fully). If asked 'complete', write a full description suitable for whatsapp (no emoji and only ascii chars): {message}",
-      "image_prompt_template": "Describe the image in 60 characters or fewer, with useful detail (product name, model, specie). Do not use emojis or invalid characters (only ascii)."
+      "text_prompt_template": "Respond in 60 characters or fewer with meaningful output only, unless asked for complete message, then 600 chars are allowed. If asked for translation, only translate (fully). If asked 'complete'. (no emoji and only ascii chars), task: {message}",
+      "image_prompt_template": "Describe the image in 60 characters or fewer, with useful detail (product name, model, specie, location). Do not use emojis or invalid characters (only ascii)."
     },
     "VanDog": {
       "url": "https://gemini.google.com/",
@@ -56,8 +45,8 @@
       "api_generation_model": "gemini-2.0-flash-exp-image-generation",
       "enable_image_generation": true,
       "image_temperature": 0.9,
-      "text_prompt_template": "You are in image generation mode. Generate an image based on the prompt: {message}",
-      "image_prompt_template": "Describe the image in 60 characters or fewer, with useful detail (product name, model, specie). Do not use emojis or invalid characters (only ascii)."
+      "text_prompt_template": "{message}",
+      "image_prompt_template": "Make a Van Gogh style of this picture"
     },
     "Birdo": {
       "url": "https://grok.com/",
@@ -67,8 +56,8 @@
       "api_platform": "grok",
       "api_model": "grok-3-mini-beta",
       "api_vision_model": "grok-2-vision-latest",
-      "text_prompt_template": "Respond in 50 characters or fewer, unless asked for complete message, then 600 chars are allowed. If asked for translation, only translate (fully). If asked 'complete', write a full description suitable for whatsapp (no emoji and only ascii chars): {message}",
-      "image_prompt_template": "Describe the image in 60 characters or fewer, with useful detail (product name, model, specie). Do not use emojis or invalid characters (only ascii)."
+      "text_prompt_template": "Respond in 60 characters or fewer with meaningful output only, unless asked for complete message, then 600 chars are allowed. If asked for translation, only translate (fully). If asked 'complete'. (no emoji and only ascii chars), task: {message}",
+      "image_prompt_template": "Describe the image in 60 characters or fewer, with useful detail (product name, model, specie, location). Do not use emojis or invalid characters (only ascii)."
     },
     "Claudio": {
       "url": "https://claude.ai/",
@@ -78,8 +67,8 @@
       "api_platform": "claude",
       "api_model": "claude-3-7-sonnet-latest",
       "api_vision_model": "claude-3-7-sonnet-latest",
-      "text_prompt_template": "Respond in 50 characters or fewer, unless asked for complete message, then 600 chars are allowed. If asked for translation, only translate (fully). If asked 'complete', write a full description suitable for whatsapp (no emoji and only ascii chars): {message}",
-      "image_prompt_template": "Describe the image in 60 characters or fewer, with useful detail (product name, model, specie). Do not use emojis or invalid characters (only ascii)."
+      "text_prompt_template": "Respond in 60 characters or fewer with meaningful output only, unless asked for complete message, then 600 chars are allowed. If asked for translation, only translate (fully). If asked 'complete'. (no emoji and only ascii chars), task: {message}",
+      "image_prompt_template": "Describe the image in 60 characters or fewer, with useful detail (product name, model, specie, location). Do not use emojis or invalid characters (only ascii)."
     }
   },
   "ignored_contacts": [

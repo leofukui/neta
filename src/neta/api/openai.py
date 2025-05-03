@@ -28,6 +28,8 @@ class OpenAIClient(APIClient):
         self.max_tokens = kwargs.get("max_tokens", 100)
         self.temperature = kwargs.get("temperature", 0.7)
         self.max_image_size_kb = kwargs.get("max_image_size_kb", 500)
+        self.max_history_messages = 10
+        self.conversation_history = []
 
         # Initialize OpenAI client
         self.client = OpenAI(api_key=self.api_key)
@@ -55,11 +57,13 @@ class OpenAIClient(APIClient):
             if not prompt_template:
                 logger.warning("No text prompt template found in config, using raw message")
                 prompt = message
+
             else:
                 # Format prompt with message
                 prompt = prompt_template.format(message=message)
 
-            # Call OpenAI API
+            self.conversation_history.append({"role": "user", "content": prompt})
+
             response = self.client.chat.completions.create(
                 model=model,
                 messages=[{"role": "user", "content": prompt}],
@@ -69,6 +73,8 @@ class OpenAIClient(APIClient):
 
             # Extract response text
             response_text = response.choices[0].message.content.strip()
+
+            self.conversation_history.append({"role": "assistant", "content": response_text})
             logger.info(f"Received response from OpenAI API: {response_text[:50]}...")
 
             return response_text, None
@@ -112,6 +118,8 @@ class OpenAIClient(APIClient):
                 logger.warning("No image prompt template found in config, using default")
                 prompt = "Describe this image briefly."
 
+            self.conversation_history.append({"role": "user", "content": prompt})
+
             # Call OpenAI API with image
             response = self.client.chat.completions.create(
                 model=model,
@@ -135,6 +143,7 @@ class OpenAIClient(APIClient):
 
             # Extract response text
             response_text = response.choices[0].message.content.strip()
+            self.conversation_history.append({"role": "assistant", "content": response_text})
             logger.info(f"Received image description from OpenAI API: {response_text}")
 
             return response_text, None
