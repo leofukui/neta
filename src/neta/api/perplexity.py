@@ -25,9 +25,8 @@ class PerplexityClient(APIClient):
             **kwargs: Additional configuration parameters
         """
         self.api_key = api_key
-        self.max_tokens = kwargs.get("max_tokens", 500)
+        self.max_tokens = kwargs.get("max_tokens", 700)
         self.temperature = kwargs.get("temperature", 0.7)
-        self.max_image_size_kb = kwargs.get("max_image_size_kb", 500)
         # Add conversation history tracking
         self.max_history_messages = kwargs.get("max_history_messages", 10)
         self.conversation_history = []
@@ -40,9 +39,7 @@ class PerplexityClient(APIClient):
 
         logger.info("Initialized Perplexity API client")
 
-    def send_text_message(
-        self, message: str, ai_config: Dict[str, Any]
-    ) -> tuple[Optional[str], Optional[str]]:
+    def send_text_message(self, message: str, ai_config: Dict[str, Any]) -> tuple[Optional[str], Optional[str]]:
         """
         Send text message to Perplexity API.
 
@@ -115,9 +112,7 @@ class PerplexityClient(APIClient):
             logger.debug(f"Perplexity API response: {response_data}")
 
             # Extract response text
-            response_text = (
-                response_data.get("choices", [{}])[0].get("message", {}).get("content", "")
-            )
+            response_text = response_data.get("choices", [{}])[0].get("message", {}).get("content", "")
 
             # Add assistant response to conversation history
             self.conversation_history.append({"role": "assistant", "content": response_text})
@@ -136,9 +131,7 @@ class PerplexityClient(APIClient):
             logger.error(f"Error sending text to Perplexity API: {e}")
             return None, None
 
-    def send_image(
-        self, image_path: str, ai_config: Dict[str, Any]
-    ) -> tuple[Optional[str], Optional[str]]:
+    def send_image(self, image_path: str, ai_config: Dict[str, Any]) -> tuple[Optional[str], Optional[str]]:
         """
         Send image to Perplexity API.
 
@@ -225,21 +218,15 @@ class PerplexityClient(APIClient):
 
             # Check for successful response
             if not response.ok:
-                logger.error(
-                    f"Perplexity API error with image: {response.status_code} - {response.text}"
-                )
-                logger.warning(
-                    "Perplexity API may not support image inputs; falling back to browser automation"
-                )
+                logger.error(f"Perplexity API error with image: {response.status_code} - {response.text}")
+                logger.warning("Perplexity API may not support image inputs; falling back to browser automation")
                 return None, None
 
             # Parse response JSON
             response_data = response.json()
 
             # Extract response text
-            response_text = (
-                response_data.get("choices", [{}])[0].get("message", {}).get("content", "")
-            )
+            response_text = response_data.get("choices", [{}])[0].get("message", {}).get("content", "")
 
             # Add assistant response to conversation history
             self.conversation_history.append({"role": "assistant", "content": response_text})
@@ -251,9 +238,7 @@ class PerplexityClient(APIClient):
         except requests.exceptions.RequestException as e:
             error_message = str(e)
             logger.error(f"Request error with Perplexity API: {error_message}")
-            logger.warning(
-                "Perplexity API may not support image inputs; falling back to browser automation"
-            )
+            logger.warning("Perplexity API may not support image inputs; falling back to browser automation")
             return None, None
         except Exception as e:
             logger.error(f"Error sending image to Perplexity API: {e}")

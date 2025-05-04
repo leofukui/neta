@@ -38,9 +38,8 @@ class MessageRouter:
         return {
             "use_api": os.getenv(f"USE_{platform_upper}_API", "false").lower() == "true",
             "api_key": os.getenv(f"{platform_upper}_API_KEY", ""),
-            "max_tokens": int(os.getenv(f"{platform_upper}_MAX_TOKENS", "100")),
+            "max_tokens": int(os.getenv(f"{platform_upper}_MAX_TOKENS", "700")),
             "temperature": float(os.getenv(f"{platform_upper}_TEMPERATURE", "0.7")),
-            "max_image_size_kb": int(os.getenv("MAX_IMAGE_SIZE_KB", "500")),
         }
 
     def _get_api_client(self, platform_name: str) -> Optional[Any]:
@@ -67,9 +66,7 @@ class MessageRouter:
 
         return client
 
-    def process_message(
-        self, ai_config: Dict[str, Any], message: str, message_type: str
-    ) -> Optional[str]:
+    def process_message(self, ai_config: Dict[str, Any], message: str, message_type: str) -> Optional[str]:
         """
         Route a message to either UI automation or API client based on configuration.
 

@@ -5,6 +5,7 @@ import os
 from typing import Any, Dict, Optional
 
 import requests
+from openai import OpenAI
 
 from ..api.base import APIClient
 
@@ -28,9 +29,11 @@ class GrokClient(APIClient):
             **kwargs: Additional configuration parameters
         """
         self.api_key = api_key
-        self.max_tokens = kwargs.get("max_tokens", 100)
+        self.max_tokens = kwargs.get("max_tokens", 700)
         self.temperature = kwargs.get("temperature", 0.7)
-        self.max_image_size_kb = kwargs.get("max_image_size_kb", 500)
+        self.client = OpenAI(api_key=self.api_key, base_url="https://api.x.ai/v1")
+        self.max_history_messages = kwargs.get("max_history_messages", 10)
+        self.conversation_history = []
 
         # API endpoint updated based on error - changed from api.grok.x to api.x.ai
         self.api_url = os.getenv("GROK_API_URL", "https://api.x.ai/v1/chat/completions")
@@ -40,9 +43,7 @@ class GrokClient(APIClient):
 
         logger.info("Initialized Grok API client")
 
-    def send_text_message(
-        self, message: str, ai_config: Dict[str, Any]
-    ) -> tuple[Optional[str], Optional[str]]:
+    def send_text_message(self, message: str, ai_config: Dict[str, Any]) -> tuple[Optional[str], Optional[str]]:
         """
         Send text message to Grok API.
 
@@ -66,13 +67,29 @@ class GrokClient(APIClient):
                 # Format prompt with message
                 prompt = prompt_template.format(message=message)
 
+            # Add user message to conversation history
+            if not hasattr(self, "conversation_history"):
+                self.conversation_history = []
+                self.max_history_messages = 10  # Default value if not set in __init__
+
+            self.conversation_history.append({"role": "user", "content": prompt})
+
+            # Trim conversation history if it exceeds max length
+            if len(self.conversation_history) > self.max_history_messages:
+                self.conversation_history = self.conversation_history[-self.max_history_messages :]
+
             # Log model being used
             logger.info(f"Using Grok model: {model}")
 
-            # Prepare request payload
+            # Prepare request payload with full conversation history
+            formatted_messages = [
+                {"role": msg["role"], "content": [{"type": "text", "text": msg["content"]}]}
+                for msg in self.conversation_history
+            ]
+
             payload = {
                 "model": model,
-                "messages": [{"role": "user", "content": prompt}],
+                "messages": formatted_messages,
                 "max_tokens": self.max_tokens,
                 "temperature": self.temperature,
             }
@@ -101,17 +118,13 @@ class GrokClient(APIClient):
                 logger.error(f"Grok API error: {response.status_code} - {response.text}")
 
                 # Try fallback URL if primary fails
-                fallback_url = os.getenv(
-                    "GROK_FALLBACK_URL", "https://api.grok.ai/v1/chat/completions"
-                )
+                fallback_url = os.getenv("GROK_FALLBACK_URL", "https://api.grok.ai/v1/chat/completions")
                 logger.info(f"Trying fallback Grok API URL: {fallback_url}")
 
                 response = requests.post(fallback_url, headers=headers, json=payload, timeout=30)
 
                 if not response.ok:
-                    logger.error(
-                        f"Fallback Grok API error: {response.status_code} - {response.text}"
-                    )
+                    logger.error(f"Fallback Grok API error: {response.status_code} - {response.text}")
                     return None, None
 
             # Parse response JSON
@@ -121,9 +134,11 @@ class GrokClient(APIClient):
             logger.debug(f"Grok API response: {response_data}")
 
             # Extract response text
-            response_text = (
-                response_data.get("choices", [{}])[0].get("message", {}).get("content", "")
-            )
+            response_text = response_data.get("choices", [{}])[0].get("message", {}).get("content", "")
+
+            # Add assistant response to conversation history
+            self.conversation_history.append({"role": "assistant", "content": response_text})
+
             logger.info(f"Received response from Grok API: {response_text[:50]}...")
 
             return response_text, None
@@ -133,17 +148,15 @@ class GrokClient(APIClient):
             # Check if this is a DNS resolution error and suggest updating the URL
             if "nodename nor servname provided" in str(e) or "Failed to resolve" in str(e):
                 logger.warning("DNS resolution error. Consider updating GROK_API_URL in .env")
-            return None
+            return None, None
         except json.JSONDecodeError as e:
             logger.error(f"JSON decode error with Grok API response: {e}")
-            return None
+            return None, None
         except Exception as e:
             logger.error(f"Error sending text to Grok API: {e}")
-            return None
+            return None, None
 
-    def send_image(
-        self, image_path: str, ai_config: Dict[str, Any]
-    ) -> tuple[Optional[str], Optional[str]]:
+    def send_image(self, image_path: str, ai_config: Dict[str, Any]) -> tuple[Optional[str], Optional[str]]:
         """
         Send image to Grok API.
 
@@ -218,29 +231,21 @@ class GrokClient(APIClient):
                 logger.error(f"Grok API error with image: {response.status_code} - {response.text}")
 
                 # Try fallback URL if primary fails
-                fallback_url = os.getenv(
-                    "GROK_FALLBACK_URL", "https://api.grok.ai/v1/chat/completions"
-                )
+                fallback_url = os.getenv("GROK_FALLBACK_URL", "https://api.grok.ai/v1/chat/completions")
                 logger.info(f"Trying fallback Grok API URL for image: {fallback_url}")
 
                 response = requests.post(fallback_url, headers=headers, json=payload, timeout=30)
 
                 if not response.ok:
-                    logger.error(
-                        f"Fallback Grok API error with image: {response.status_code} - {response.text}"
-                    )
-                    logger.warning(
-                        "Grok API may not support image inputs; falling back to browser automation"
-                    )
+                    logger.error(f"Fallback Grok API error with image: {response.status_code} - {response.text}")
+                    logger.warning("Grok API may not support image inputs; falling back to browser automation")
                     return None, None
 
             # Parse response JSON
             response_data = response.json()
 
             # Extract response text
-            response_text = (
-                response_data.get("choices", [{}])[0].get("message", {}).get("content", "")
-            )
+            response_text = response_data.get("choices", [{}])[0].get("message", {}).get("content", "")
             logger.info(f"Received image description from Grok API: {response_text}")
 
             return response_text, None
@@ -250,10 +255,7 @@ class GrokClient(APIClient):
             logger.error(f"Request error with Grok API for image: {error_message}")
 
             # Check if this is a DNS resolution error
-            if (
-                "nodename nor servname provided" in error_message
-                or "Failed to resolve" in error_message
-            ):
+            if "nodename nor servname provided" in error_message or "Failed to resolve" in error_message:
                 logger.warning("DNS resolution error. Consider updating GROK_API_URL in .env")
 
             logger.warning("Falling back to browser automation")

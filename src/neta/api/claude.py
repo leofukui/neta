@@ -17,9 +17,8 @@ class ClaudeClient(APIClient):
 
     def __init__(self, api_key: str, **kwargs):
         self.api_key = api_key
-        self.max_tokens = kwargs.get("max_tokens", 100)
+        self.max_tokens = kwargs.get("max_tokens", 700)
         self.temperature = kwargs.get("temperature", 0.7)
-        self.max_image_size_kb = kwargs.get("max_image_size_kb", 500)
         self.max_history_messages = kwargs.get("max_history_messages", 10)
 
         self.conversation_history: list[dict[str, Any]] = []
@@ -27,9 +26,7 @@ class ClaudeClient(APIClient):
         self.client = Anthropic(api_key=self.api_key)
         logger.info("Initialized Claude API client")
 
-    def send_text_message(
-        self, message: str, ai_config: Dict[str, Any]
-    ) -> tuple[Optional[str], Optional[str]]:
+    def send_text_message(self, message: str, ai_config: Dict[str, Any]) -> tuple[Optional[str], Optional[str]]:
         """
         Send text message to Claude API.
         """
@@ -61,9 +58,7 @@ class ClaudeClient(APIClient):
             logger.error(f"Error sending text to Claude API: {e}")
             return None, None
 
-    def send_image(
-        self, image_path: str, ai_config: Dict[str, Any]
-    ) -> tuple[Optional[str], Optional[str]]:
+    def send_image(self, image_path: str, ai_config: Dict[str, Any]) -> tuple[Optional[str], Optional[str]]:
         """
         Send image to Claude API using vision capabilities, with context simulated via text.
         """
@@ -122,7 +117,3 @@ class ClaudeClient(APIClient):
         except Exception as e:
             logger.error(f"Error sending image to Claude API: {e}")
             return None, None
-
-    def reset_conversation(self):
-        self.conversation_history.clear()
-        logger.info("Claude conversation reset")

@@ -274,9 +274,7 @@ class NetaAutomation:
                         response = self.process_message(group_name, message, message_type)
 
                         # Send response back to WhatsApp
-                        if response and (
-                            response[0] or response[1]
-                        ):  # If text or image is returned
+                        if response and (response[0] or response[1]):  # If text or image is returned
                             self.send_response(response, group_name)
 
                     # Periodically cleanup temp files

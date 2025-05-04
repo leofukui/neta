@@ -33,15 +33,13 @@ class APIClientFactory:
             platform = platform.lower()
 
             # Get common parameters from environment
-            max_tokens = int(os.getenv(f"{platform.upper()}_MAX_TOKENS", "100"))
+            max_tokens = int(os.getenv(f"{platform.upper()}_MAX_TOKENS", "700"))
             temperature = float(os.getenv(f"{platform.upper()}_TEMPERATURE", "0.7"))
-            max_image_size_kb = int(os.getenv("MAX_IMAGE_SIZE_KB", "500"))
 
             # Common settings for all clients
             client_settings = {
                 "max_tokens": max_tokens,
                 "temperature": temperature,
-                "max_image_size_kb": max_image_size_kb,
                 **kwargs,
             }
 

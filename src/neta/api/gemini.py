@@ -19,9 +19,8 @@ class GeminiClient(APIClient):
 
     def __init__(self, api_key: str, **kwargs):
         self.api_key = api_key
-        self.max_tokens = kwargs.get("max_tokens", 100)
+        self.max_tokens = kwargs.get("max_tokens", 700)
         self.temperature = kwargs.get("temperature", 0.7)
-        self.max_image_size_kb = kwargs.get("max_image_size_kb", 500)
         self.max_history_messages = kwargs.get("max_history_messages", 10)
 
         self.conversation_history: list[dict[str, str]] = []
@@ -31,18 +30,14 @@ class GeminiClient(APIClient):
             f"Initialized Gemini API client with google.genai version: {getattr(genai, '__version__', 'unknown')}"
         )
 
-    def send_text_message(
-        self, message: str, ai_config: Dict[str, Any]
-    ) -> Tuple[Optional[str], Optional[str]]:
+    def send_text_message(self, message: str, ai_config: Dict[str, Any]) -> Tuple[Optional[str], Optional[str]]:
         """Send text message to Gemini API."""
         try:
             if self._is_image_generation_request(message, ai_config):
                 logger.info("Image generation request detected")
                 return self._generate_image(message, ai_config)
 
-            model_name = ai_config.get(
-                "api_model", os.getenv("GEMINI_MODEL", "gemini-2.0-flash-001")
-            )
+            model_name = ai_config.get("api_model", os.getenv("GEMINI_MODEL", "gemini-2.0-flash-001"))
             prompt_template = ai_config.get("text_prompt_template")
             prompt = prompt_template.format(message=message) if prompt_template else message
 
@@ -82,17 +77,13 @@ class GeminiClient(APIClient):
     ) -> Tuple[Optional[str], Optional[str]]:
         """Send image to Gemini API using vision capabilities."""
         try:
-            model_name = ai_config.get(
-                "api_vision_model", os.getenv("GEMINI_VISION_MODEL", "gemini-2.0-flash-001")
-            )
+            model_name = ai_config.get("api_vision_model", os.getenv("GEMINI_VISION_MODEL", "gemini-2.0-flash-001"))
 
             with open(image_path, "rb") as image_file:
                 image_data = image_file.read()
 
             # Use passed `message` as prompt, fallback to template or default
-            prompt_template = (
-                ai_config.get("image_prompt_template") or "Describe this image briefly."
-            )
+            prompt_template = ai_config.get("image_prompt_template") or "Describe this image briefly."
             prompt = (
                 prompt_template.format(message=message)
                 if message and "{message}" in prompt_template
@@ -137,9 +128,7 @@ class GeminiClient(APIClient):
             logger.error(f"Error sending image to Gemini API: {e}")
             return None, None
 
-    def _generate_image(
-        self, prompt: str, ai_config: Dict[str, Any]
-    ) -> Tuple[Optional[str], Optional[str]]:
+    def _generate_image(self, prompt: str, ai_config: Dict[str, Any]) -> Tuple[Optional[str], Optional[str]]:
         """Generate an image using Gemini API."""
         try:
             model_name = ai_config.get(
@@ -179,7 +168,3 @@ class GeminiClient(APIClient):
 
     def _is_image_generation_request(self, message: str, ai_config: Dict[str, Any]) -> bool:
         return ai_config.get("enable_image_generation", False)
-
-    def reset_conversation(self):
-        self.conversation_history.clear()
-        logger.info("Gemini conversation reset")

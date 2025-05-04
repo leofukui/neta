@@ -25,9 +25,8 @@ class OpenAIClient(APIClient):
             **kwargs: Additional configuration parameters
         """
         self.api_key = api_key
-        self.max_tokens = kwargs.get("max_tokens", 100)
+        self.max_tokens = kwargs.get("max_tokens", 700)
         self.temperature = kwargs.get("temperature", 0.7)
-        self.max_image_size_kb = kwargs.get("max_image_size_kb", 500)
         self.max_history_messages = 10
         self.conversation_history = []
 
@@ -55,16 +54,21 @@ class OpenAIClient(APIClient):
             if not prompt_template:
                 logger.warning("No text prompt template found in config, using raw message")
                 prompt = message
-
             else:
                 # Format prompt with message
                 prompt = prompt_template.format(message=message)
 
+            # Add user message to conversation history
             self.conversation_history.append({"role": "user", "content": prompt})
 
+            # Trim conversation history if it exceeds max length
+            if len(self.conversation_history) > self.max_history_messages:
+                self.conversation_history = self.conversation_history[-self.max_history_messages :]
+
+            # Send full conversation history to maintain context
             response = self.client.chat.completions.create(
                 model=model,
-                messages=[{"role": "user", "content": prompt}],
+                messages=self.conversation_history,  # Use full conversation history
                 max_tokens=self.max_tokens,
                 temperature=self.temperature,
             )
@@ -72,7 +76,9 @@ class OpenAIClient(APIClient):
             # Extract response text
             response_text = response.choices[0].message.content.strip()
 
+            # Add assistant response to conversation history
             self.conversation_history.append({"role": "assistant", "content": response_text})
+
             logger.info(f"Received response from OpenAI API: {response_text[:50]}...")
 
             return response_text, None
