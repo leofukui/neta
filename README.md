@@ -2,9 +2,10 @@
 
 **(Your Pocket AI Bridge, Built with Python & Shenanigans)**
 
-Ever wish you could just ping your favorite AI assistant directly from WhatsApp, perhaps even send it a picture you just snapped with your fancy smart glasses? Neta is here to make that happen!
+Ever wish you could just ping your favorite AI assistant directly from WhatsApp, perhaps even send it a picture you just snapped with your fancy smart glasses?
+Neta is here to make that happen!
 
-This Python application connects WhatsApp Web to various AI platforms (ChatGPT, Claude, Gemini, Perplexity, Grok) using UI automation or API integration.
+This Python application connects WhatsApp Web using UI automation to various AI platforms (ChatGPT, Claude, Gemini, Perplexity, Grok) with API integration.
 It automatically grabs messages and images from your designated WhatsApp chats, sends them to the corresponding AI, and brings back the response.
 
 
@@ -23,14 +24,6 @@ Some features aren't available everywhere 🌍 — but Neta makes sure your assi
 It's fully chat-based because I wanted to make use of the plans I’ve already paid for.
 
 Anyway, cheers.
-
-## ⚠️ Deprecation Notice: Browser Integration
-
-The **browser-based integration** (UI automation via Selenium) is **deprecated** and will be **removed soon** from the codebase.
-
-> 🧼 It was a great hack for fast prototyping, but it's time to clean things up.
-
-Moving forward, **API-based integration is the priority** — it offers **better reliability, performance, and stability** across all supported platforms.
 
 
 **👉 Meet the Crew (Your AI Agents):**
@@ -56,10 +49,6 @@ Curious about the agents? Dive into the [Museum Section](./docs/museum/README.md
 * 💬 **Process Text Messages:** Send prompts directly from WhatsApp.
 * 🖼️ **Process Image Messages:** Send images from WhatsApp for AI analysis.
 * 👓 **Optimized for Readability:** Default settings aim for concise replies suitable for smart glasses or quick reading.
-
-## Architecture
-
-Want to see the setup under the hood? Check out the [ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## In Progress ⏰
 

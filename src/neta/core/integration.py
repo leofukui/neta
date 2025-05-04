@@ -17,18 +17,16 @@ class IntegrationManager:
     Manages API integrations for different AI platforms.
     """
 
-    def __init__(self, config, driver=None, ai_platform_ui=None):
+    def __init__(self, config, driver=None):
         """
         Initialize integration manager.
 
         Args:
             config: Configuration instance
             driver: WebDriver instance (optional)
-            ai_platform_ui: AIPlatformUI instance (optional)
         """
         self.config = config
         self.driver = driver
-        self.ai_platform_ui = ai_platform_ui
         self.clients = {}
         self._initialize_clients()
 

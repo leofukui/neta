@@ -36,7 +36,6 @@ class MessageRouter:
         """
         platform_upper = platform_name.upper()
         return {
-            "use_api": os.getenv(f"USE_{platform_upper}_API", "false").lower() == "true",
             "api_key": os.getenv(f"{platform_upper}_API_KEY", ""),
             "max_tokens": int(os.getenv(f"{platform_upper}_MAX_TOKENS", "700")),
             "temperature": float(os.getenv(f"{platform_upper}_TEMPERATURE", "0.7")),
@@ -87,36 +86,19 @@ class MessageRouter:
             # Get platform configuration
             platform_config = self._get_platform_config(platform_name)
 
-            # Determine whether to use API or UI
-            use_api = platform_config.get("use_api", False)
+            # Use API client
+            logger.info(f"Using API for {platform_name}")
+            client = self._get_api_client(platform_name)
 
-            if use_api:
-                # Use API client
-                logger.info(f"Using API for {platform_name}")
-                client = self._get_api_client(platform_name)
+            if not client:
+                logger.error(f"API client not available for {platform_name}")
+                return None
 
-                if not client:
-                    logger.error(f"API client not available for {platform_name}")
-                    return None
-
-                # Send message based on type
-                if message_type == "text":
-                    return client.send_text_message(message, ai_config)
-                else:  # message_type == "image"
-                    return client.send_image(message, ai_config)
-            else:
-                # Use UI automation
-                if not self.ui_handler:
-                    logger.error("UI handler not available for browser automation")
-                    return None
-
-                logger.info(f"Using UI automation for {platform_name}")
-
-                # Send message based on type
-                if message_type == "text":
-                    return self.ui_handler.send_text_message(ai_config, message)
-                else:  # message_type == "image"
-                    return self.ui_handler.send_image(ai_config, message)
+            # Send message based on type
+            if message_type == "text":
+                return client.send_text_message(message, ai_config)
+            else:  # message_type == "image"
+                return client.send_image(message, ai_config)
 
         except Exception as e:
             logger.error(f"Error in message router: {e}")
