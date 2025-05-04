@@ -82,13 +82,11 @@ class GeminiClient(APIClient):
     ) -> Tuple[Optional[str], Optional[str]]:
         """Send image to Gemini API using vision capabilities."""
         try:
-            compressed_image_path = self._compress_image_for_api(image_path, self.max_image_size_kb)
-            content_type = "image/jpeg"
             model_name = ai_config.get(
                 "api_vision_model", os.getenv("GEMINI_VISION_MODEL", "gemini-2.0-flash-001")
             )
 
-            with open(compressed_image_path, "rb") as image_file:
+            with open(image_path, "rb") as image_file:
                 image_data = image_file.read()
 
             # Use passed `message` as prompt, fallback to template or default
@@ -107,9 +105,20 @@ class GeminiClient(APIClient):
                 max_output_tokens=60,
                 temperature=self.temperature,
             )
+
             contents = [
-                genai.types.Content(role=msg["role"], parts=[{"text": msg["content"]}])
-                for msg in self.conversation_history
+                genai.types.Content(
+                    role="user",
+                    parts=[
+                        genai.types.Part(text=prompt),
+                        genai.types.Part(
+                            inline_data=genai.types.Blob(
+                                mime_type="image/jpeg",  # or png depending on image
+                                data=image_data,
+                            )
+                        ),
+                    ],
+                )
             ]
 
             response = self.client.models.generate_content(

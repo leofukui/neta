@@ -1,8 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
 
-from ..utils.image_processing import compress_image
-
 
 class APIClient(ABC):
     """
@@ -52,16 +50,3 @@ class APIClient(ABC):
             Tuple of (AI response text, image_path) where image_path is None if no image was generated
         """
         pass
-
-    def _compress_image_for_api(self, image_path: str, max_size_kb: int = 500) -> str:
-        """
-        Compress an image before sending to API to reduce bandwidth and costs.
-
-        Args:
-            image_path: Path to the original image file
-            max_size_kb: Maximum desired file size in kilobytes
-
-        Returns:
-            Path to the compressed image file (or original if compression fails)
-        """
-        return compress_image(image_path, max_size_kb)

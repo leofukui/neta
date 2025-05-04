@@ -7,7 +7,6 @@ from typing import Any, Dict, Optional
 import requests
 
 from ..api.base import APIClient
-from ..utils.image_processing import compress_image
 
 logger = logging.getLogger(__name__)
 
@@ -159,9 +158,6 @@ class GrokClient(APIClient):
             AI response text or None if failed
         """
         try:
-            # Compress image before sending
-            compressed_image_path = compress_image(image_path, self.max_image_size_kb)
-
             # After compression, we know it's a JPEG
             content_type = "image/jpeg"
 
@@ -172,7 +168,7 @@ class GrokClient(APIClient):
             )
 
             # Read image file and encode as base64
-            with open(compressed_image_path, "rb") as image_file:
+            with open(image_path, "rb") as image_file:
                 base64_image = base64.b64encode(image_file.read()).decode("utf-8")
 
             # Get prompt from config

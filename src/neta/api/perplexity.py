@@ -7,7 +7,6 @@ from typing import Any, Dict, Optional
 import requests
 
 from ..api.base import APIClient
-from ..utils.image_processing import compress_image
 
 logger = logging.getLogger(__name__)
 
@@ -157,10 +156,6 @@ class PerplexityClient(APIClient):
             # This is a best-effort implementation that may need updates based on
             # Perplexity's API capabilities in 2025
 
-            # Compress image before sending
-            compressed_image_path = compress_image(image_path, self.max_image_size_kb)
-
-            # After compression, we know it's a JPEG
             content_type = "image/jpeg"
 
             # Get model from config or environment
@@ -170,7 +165,7 @@ class PerplexityClient(APIClient):
             )
 
             # Read image file and encode as base64
-            with open(compressed_image_path, "rb") as image_file:
+            with open(image_path, "rb") as image_file:
                 base64_image = base64.b64encode(image_file.read()).decode("utf-8")
 
             # Get prompt from config

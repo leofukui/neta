@@ -97,8 +97,6 @@ class OpenAIClient(APIClient):
             AI response text or None if failed
         """
         try:
-            # Compress image before sending
-            compressed_image_path = self._compress_image_for_api(image_path, self.max_image_size_kb)
 
             # Get vision model from config or environment
             model = ai_config.get(

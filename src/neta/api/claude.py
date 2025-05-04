@@ -68,12 +68,11 @@ class ClaudeClient(APIClient):
         Send image to Claude API using vision capabilities, with context simulated via text.
         """
         try:
-            compressed_image_path = self._compress_image_for_api(image_path, self.max_image_size_kb)
             content_type = "image/jpeg"
 
             model = ai_config.get("api_model", os.getenv("CLAUDE_MODEL", "claude-3-opus-20240229"))
 
-            with open(compressed_image_path, "rb") as image_file:
+            with open(image_path, "rb") as image_file:
                 image_data = image_file.read()
                 base64_image = base64.b64encode(image_data).decode("utf-8")
 
