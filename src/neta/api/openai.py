@@ -35,9 +35,7 @@ class OpenAIClient(APIClient):
         self.client = OpenAI(api_key=self.api_key)
         logger.info(f"Initialized OpenAI API client")
 
-    def send_text_message(
-        self, message: str, ai_config: Dict[str, Any]
-    ) -> tuple[Optional[str], Optional[str]]:
+    def send_text_message(self, message: str, ai_config: Dict[str, Any]) -> tuple[Optional[str], Optional[str]]:
         """
         Send text message to OpenAI API.
 
@@ -83,9 +81,7 @@ class OpenAIClient(APIClient):
             logger.error(f"Error sending text to OpenAI API: {e}")
             return None, None
 
-    def send_image(
-        self, image_path: str, ai_config: Dict[str, Any]
-    ) -> tuple[Optional[str], Optional[str]]:
+    def send_image(self, image_path: str, ai_config: Dict[str, Any]) -> tuple[Optional[str], Optional[str]]:
         """
         Send image to OpenAI API using vision capabilities.
 
@@ -99,15 +95,13 @@ class OpenAIClient(APIClient):
         try:
 
             # Get vision model from config or environment
-            model = ai_config.get(
-                "api_vision_model", os.getenv("OPENAI_VISION_MODEL", "gpt-4-vision-preview")
-            )
+            model = ai_config.get("api_vision_model", os.getenv("OPENAI_VISION_MODEL", "gpt-4-vision-preview"))
 
             # Get content type
             content_type = "image/jpeg"  # After compression, we know it's a JPEG
 
             # Read image file and encode as base64
-            with open(compressed_image_path, "rb") as image_file:
+            with open(image_path, "rb") as image_file:
                 base64_image = base64.b64encode(image_file.read()).decode("utf-8")
 
             # Get prompt from config
