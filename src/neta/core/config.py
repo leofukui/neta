@@ -35,7 +35,7 @@ class Config:
         self.viewer_close_delay = float(os.getenv("VIEWER_CLOSE_DELAY", "1"))
         self.upload_button_delay = float(os.getenv("UPLOAD_BUTTON_DELAY", "2"))
         self.login_wait_delay = float(os.getenv("LOGIN_WAIT_DELAY", "1"))
-        self.loop_interval_delay = float(os.getenv("LOOP_INTERVAL_DELAY", "5"))
+        self.loop_interval_delay = float(os.getenv("LOOP_INTERVAL_DELAY", "1"))
 
     def load_config(self) -> dict[str, Any]:
         """

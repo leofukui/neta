@@ -336,18 +336,11 @@ class NetaAutomation:
         for group_name in group_names:
             self.processing_messages[group_name] = set()
 
-        # Set polling delay based on system load
-        base_delay = self.config.loop_interval_delay
-        min_delay = max(1.0, base_delay / 2)  # Never poll faster than once per second
-
         while not self.shutdown_event.is_set():
             try:
                 # Adjust polling delay based on active tasks
                 current_task_count = len(self.tasks)
                 # Slow down polling if we have many active tasks
-                adjusted_delay = min(base_delay * (1 + 0.2 * current_task_count), base_delay * 3)
-                # But don't slow down too much
-                actual_delay = max(min_delay, adjusted_delay)
 
                 if current_task_count > 0:
                     logger.debug(f"Currently processing {current_task_count} messages, poll delay: {actual_delay:.2f}s")
@@ -387,14 +380,14 @@ class NetaAutomation:
                     )
 
                 # Adaptive delay before next check
-                await asyncio.sleep(actual_delay)
+                await asyncio.sleep(self.config.loop_interval_delay)
 
             except asyncio.CancelledError:
                 logger.info("Message poller task was cancelled")
                 break
             except Exception as e:
                 logger.error(f"Error in message poller: {e}")
-                await asyncio.sleep(base_delay * 2)  # Longer delay on error
+                await asyncio.sleep(5)
 
     async def run_async(self):
         """
