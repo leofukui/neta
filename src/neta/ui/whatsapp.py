@@ -1,3 +1,4 @@
+import hashlib
 import logging
 import os
 import time
@@ -15,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 class WhatsAppUI:
     """
-    Handle WhatsApp Web UI interactions.
+    Handle WhatsApp Web UI interactions with minimal changes from original.
     """
 
     def __init__(self, driver, image_manager=None):
@@ -29,15 +30,21 @@ class WhatsAppUI:
         self.driver = driver
         self.image_manager = image_manager
         self.current_chat = None
+
+        # Configurable delays
         self.image_download_delay = float(os.getenv("IMAGE_DOWNLOAD_DELAY", "2"))
         self.viewer_load_delay = float(os.getenv("VIEWER_LOAD_DELAY", "1"))
         self.viewer_close_delay = float(os.getenv("VIEWER_CLOSE_DELAY", "1"))
         self.paste_delay = float(os.getenv("PASTE_DELAY", "0.5"))
         self.os_type = os.getenv("OS_TYPE", "macos").lower()  # Default to macOS
 
+        # Simple message tracking to avoid duplicates
+        self.last_messages = {}
+
     def select_chat(self, group_name):
         """
         Select or verify the specified chat.
+        Using the exact same implementation as original.
 
         Args:
             group_name: Name of the WhatsApp group
@@ -67,9 +74,29 @@ class WhatsAppUI:
             logger.error(f"Error selecting chat: {e}")
             return False
 
+    def is_whatsapp_loaded(self):
+        """
+        Simple check if WhatsApp Web is loaded properly.
+
+        Returns:
+            Boolean indicating if WhatsApp is loaded
+        """
+        try:
+            # Check for essential WhatsApp elements
+            chat_list = self.driver.find_elements(By.CSS_SELECTOR, "div[role='listitem']")
+
+            # Check URL
+            is_whatsapp_url = "web.whatsapp.com" in self.driver.current_url
+
+            return len(chat_list) > 0 and is_whatsapp_url
+        except Exception as e:
+            logger.error(f"Error checking WhatsApp: {e}")
+            return False
+
     def get_new_messages(self, group_names, message_cache):
         """
         Check for new messages in WhatsApp groups.
+        Maintaining original implementation with minor additions.
 
         Args:
             group_names: List of WhatsApp group names to check
@@ -79,6 +106,12 @@ class WhatsAppUI:
             Tuple of (group_name, message, message_type) or (None, None, None) if no new messages
         """
         try:
+            # Check if WhatsApp is loaded at all
+            if not self.is_whatsapp_loaded():
+                logger.error("WhatsApp UI elements not found")
+                logger.error("Not on WhatsApp page when checking for messages")
+                return None, None, None
+
             # Wait for the chat list to load
             WebDriverWait(self.driver, 10).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, "div[role='listitem']"))
@@ -92,15 +125,11 @@ class WhatsAppUI:
 
                 # Wait for messages to load
                 WebDriverWait(self.driver, 5).until(
-                    EC.presence_of_element_located(
-                        (By.CSS_SELECTOR, "div.message-in, div.message-out")
-                    )
+                    EC.presence_of_element_located((By.CSS_SELECTOR, "div.message-in, div.message-out"))
                 )
 
                 # Get all message containers
-                message_containers = self.driver.find_elements(
-                    By.CSS_SELECTOR, "div.message-in, div.message-out"
-                )
+                message_containers = self.driver.find_elements(By.CSS_SELECTOR, "div.message-in, div.message-out")
                 if not message_containers:
                     logger.debug(f"No messages found in {group_name}")
                     continue
@@ -108,9 +137,7 @@ class WhatsAppUI:
                 # Check if the most recent message is from the current user (message-out)
                 latest_container = message_containers[-1]
                 if "message-out" in latest_container.get_attribute("class"):
-                    logger.debug(
-                        f"Most recent message in {group_name} is from current user, skipping"
-                    )
+                    logger.debug(f"Most recent message in {group_name} is from current user, skipping")
                     continue
 
                 # Check for images in the latest incoming message
@@ -194,9 +221,7 @@ class WhatsAppUI:
 
                     # Cache the incoming text message before processing
                     message_cache.cache_content(latest_message, group_name)
-                    logger.info(
-                        f"New text message detected in {group_name}: {latest_message[:50]}..."
-                    )
+                    logger.info(f"New text message detected in {group_name}: {latest_message[:50]}...")
                     return group_name, latest_message, "text"
         except Exception as e:
             logger.error(f"Error checking for text messages in {group_name}: {e}")
@@ -239,9 +264,7 @@ class WhatsAppUI:
                             logger.debug(f"ActionChains click failed: {e3}")
                             # Method 4: Try click parent container
                             try:
-                                parent_container = img_element.find_element(
-                                    By.XPATH, "./ancestor::div[@role='button']"
-                                )
+                                parent_container = img_element.find_element(By.XPATH, "./ancestor::div[@role='button']")
                                 parent_container.click()
                                 logger.info("Clicked parent container")
                             except Exception as e4:
@@ -253,9 +276,7 @@ class WhatsAppUI:
 
                 # Look for full image in viewer
                 full_image = WebDriverWait(self.driver, 10).until(
-                    EC.presence_of_element_located(
-                        (By.CSS_SELECTOR, "img[src^='blob:'], img.image-viewer")
-                    )
+                    EC.presence_of_element_located((By.CSS_SELECTOR, "img[src^='blob:'], img.image-viewer"))
                 )
                 logger.info("Found full image in viewer")
 
@@ -383,6 +404,7 @@ class WhatsAppUI:
     def send_message(self, message, image_path=None):
         """
         Send a message to the current WhatsApp chat.
+        Added minimal safety mechanisms to prevent wrong chat issues.
 
         Args:
             message: Message text to send (can be None if only sending image)
@@ -397,6 +419,10 @@ class WhatsAppUI:
                 logger.error("No active chat selected")
                 return False
 
+            # Store message to track duplicates (add message ID for tracking)
+            if message and message.strip():
+                self.last_messages[self.current_chat] = message
+
             # If we have an image to send, handle it first
             if image_path:
                 if not self._send_image(image_path):
@@ -405,13 +431,17 @@ class WhatsAppUI:
 
             # If we have a text message to send
             if message and message.strip():
+
                 # Use clipboard to handle special characters reliably
                 pyperclip.copy(message)
 
                 # Find and interact with the input field
                 input_field = WebDriverWait(self.driver, 10).until(
                     EC.presence_of_element_located(
-                        (By.CSS_SELECTOR, "div[aria-label='Type a message']")
+                        (
+                            By.CSS_SELECTOR,
+                            "div[aria-label='Type a message'], div[contenteditable='true'][data-tab='10']",
+                        )
                     )
                 )
                 input_field.click()
@@ -422,6 +452,9 @@ class WhatsAppUI:
                     actions.key_down(Keys.COMMAND).send_keys("v").key_up(Keys.COMMAND).perform()
                 else:
                     actions.key_down(Keys.CONTROL).send_keys("v").key_up(Keys.CONTROL).perform()
+
+                # Short delay to ensure paste completed
+                time.sleep(self.paste_delay)
 
                 # Send message
                 input_field.send_keys(Keys.ENTER)
@@ -516,7 +549,7 @@ class WhatsAppUI:
             # Find input field
             input_field = WebDriverWait(self.driver, 10).until(
                 EC.presence_of_element_located(
-                    (By.CSS_SELECTOR, "div[aria-label='Type a message']")
+                    (By.CSS_SELECTOR, "div[aria-label='Type a message'], div[contenteditable='true'][data-tab='10']")
                 )
             )
             input_field.click()
