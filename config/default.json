@@ -8,7 +8,7 @@
       "api_platform": "openai",
       "api_model": "chatgpt-4o-latest",
       "api_vision_model": "chatgpt-4o-latest",
-      "text_prompt_template": "Short → ≤55 chars. Complete → ≤800. Default → ≤400. Clear, useful, ASCII only. Task: {message}",
+      "text_prompt_template": "Use only ASCII. Reply with max 300 chars of relevant info if the message does not ask explicitly for a message size. Reply with max 600 chars if it asks for 'complete', and for 'short' reply with max 55 chars. Don't reply with the response style. Do not combine them. Task: {message}",
       "image_prompt_template": "Describe with useful info (product, model, brand, species, author, place, or text seen translated to English). Ignore colours, style, lighting. Max 400 chars. ASCII only. Prompt: {message}"
     },
     "Perplexo": {
@@ -20,7 +20,7 @@
       "api_platform": "perplexity",
       "api_model": "sonar",
       "api_vision_model": "sonar",
-      "text_prompt_template": "Short → ≤55 chars. Complete → ≤800. Default → ≤400. Clear, useful, ASCII only. Task: {message}",
+      "text_prompt_template": "Use only ASCII. Reply with max 300 chars of relevant info if the message does not ask explicitly for a message size. Reply with max 600 chars if it asks for 'complete', and for 'short' reply with max 55 chars. Don't reply with the response style. Do not combine them. Task: {message}",
       "image_prompt_template": "Describe with useful info (product, model, brand, species, author, place, or text seen translated to English). Ignore colours, style, lighting. Max 400 chars. ASCII only. Prompt: {message}"
     },
     "Gemininas": {
@@ -31,7 +31,7 @@
       "api_platform": "gemini",
       "api_model": "gemini-2.0-flash-lite",
       "api_vision_model": "gemini-2.0-flash",
-      "text_prompt_template": "Use only ASCII. Reply with max 300 chars of relevant info if the message does not ask explicitly for a message size. Reply with max 600 chars if it asks for 'complete'. For 'short' reply with max 55 chars. Don't reply with the response style. Do not combine them. Task: {message}",
+      "text_prompt_template": "Use only ASCII. Reply with max 300 chars of relevant info if the message does not ask explicitly for a message size. Reply with max 600 chars if it asks for 'complete', and for 'short' reply with max 55 chars. Don't reply with the response style. Do not combine them. Task: {message}",
       "image_prompt_template": "Describe with useful info (product, model, brand, species, author, place, or text seen translated to English). Ignore colours, style, lighting. Max 400 chars. ASCII only. Prompt: {message}"
     },
     "VanDog": {
@@ -56,7 +56,7 @@
       "api_platform": "grok",
       "api_model": "grok-3-mini-beta",
       "api_vision_model": "grok-2-vision-latest",
-      "text_prompt_template": "Short → ≤55 chars. Complete → ≤800. Default → ≤400. Clear, useful, ASCII only. Task: {message}",
+      "text_prompt_template": "Use only ASCII. Reply with max 300 chars of relevant info if the message does not ask explicitly for a message size. Reply with max 600 chars if it asks for 'complete', and for 'short' reply with max 55 chars. Don't reply with the response style. Do not combine them. Task: {message}",
       "image_prompt_template": "Describe with useful info (product, model, brand, species, author, place, or text seen translated to English). Ignore colours, style, lighting. Max 400 chars. ASCII only. Prompt: {message}"
     },
     "Claudio": {
@@ -67,7 +67,7 @@
       "api_platform": "claude",
       "api_model": "claude-3-7-sonnet-latest",
       "api_vision_model": "claude-3-7-sonnet-latest",
-      "text_prompt_template": "Short → ≤55 chars. Complete → ≤800. Default → ≤400. Clear, useful, ASCII only. Task: {message}",
+      "text_prompt_template": "Use only ASCII. Reply with max 300 chars of relevant info if the message does not ask explicitly for a message size. Reply with max 600 chars if it asks for 'complete', and for 'short' reply with max 55 chars. Don't reply with the response style. Do not combine them. Task: {message}",
       "image_prompt_template": "Describe with useful info (product, model, brand, species, author, place, or text seen translated to English). Ignore colours, style, lighting. Max 400 chars. ASCII only. Prompt: {message}"
     }
   },

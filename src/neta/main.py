@@ -21,9 +21,7 @@ def parse_arguments():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(description="Neta: WhatsApp-AI chat integration bridge")
 
-    parser.add_argument(
-        "--config", type=str, help="Path to configuration file (default: from env or config.json)"
-    )
+    parser.add_argument("--config", type=str, help="Path to configuration file (default: from env or config.json)")
 
     parser.add_argument(
         "--log-level",

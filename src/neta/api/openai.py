@@ -3,7 +3,6 @@ import logging
 import os
 from typing import Any, Dict, Optional
 
-import openai
 from openai import OpenAI
 
 from .base import APIClient

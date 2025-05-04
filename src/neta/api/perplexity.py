@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 class PerplexityClient(APIClient):
     """
-    Perplexity API client implementation.
+    Perplexity API client implementation with persistent system prompt support.
     """
 
     def __init__(self, api_key: str, **kwargs):
@@ -25,7 +25,7 @@ class PerplexityClient(APIClient):
             **kwargs: Additional configuration parameters
         """
         self.api_key = api_key
-        self.max_tokens = kwargs.get("max_tokens", 700)
+        self.max_tokens = kwargs.get("max_tokens", 1000)
         self.temperature = kwargs.get("temperature", 0.7)
         # Add conversation history tracking
         self.max_history_messages = kwargs.get("max_history_messages", 10)
@@ -54,17 +54,11 @@ class PerplexityClient(APIClient):
             # Get model from config or environment or use default
             model = ai_config.get("api_model", os.getenv("PERPLEXITY_MODEL", self.default_model))
 
-            # Get prompt template from config
-            prompt_template = ai_config.get("text_prompt_template")
-            if not prompt_template:
-                logger.warning("No text prompt template found in config, using raw message")
-                prompt = message
-            else:
-                # Format prompt with message
-                prompt = prompt_template.format(message=message)
+            # Get system prompt from config
+            system_prompt = ai_config.get("system_prompt", "")
 
             # Add user message to conversation history
-            self.conversation_history.append({"role": "user", "content": prompt})
+            self.conversation_history.append({"role": "user", "content": message})
 
             # Trim conversation history if it exceeds max length
             if len(self.conversation_history) > self.max_history_messages:
@@ -73,10 +67,20 @@ class PerplexityClient(APIClient):
             # Log model being used
             logger.info(f"Using Perplexity model: {model}")
 
-            # Prepare request payload with conversation history
+            # Create full messages list with system prompt + conversation history
+            full_messages = []
+
+            # Add system message if it exists
+            if system_prompt:
+                full_messages.append({"role": "system", "content": system_prompt})
+
+            # Add conversation history
+            full_messages.extend(self.conversation_history)
+
+            # Prepare request payload with system prompt and conversation history
             payload = {
                 "model": model,
-                "messages": self.conversation_history,  # Use the full conversation history
+                "messages": full_messages,  # Use system prompt + conversation history
                 "max_tokens": self.max_tokens,
                 "temperature": self.temperature,
             }
@@ -114,7 +118,7 @@ class PerplexityClient(APIClient):
             # Extract response text
             response_text = response_data.get("choices", [{}])[0].get("message", {}).get("content", "")
 
-            # Add assistant response to conversation history
+            # Add assistant response to conversation history (not including system prompt)
             self.conversation_history.append({"role": "assistant", "content": response_text})
 
             logger.info(f"Received response from Perplexity API: {response_text[:50]}...")
@@ -157,27 +161,36 @@ class PerplexityClient(APIClient):
                 ai_config.get("api_model", os.getenv("PERPLEXITY_MODEL", self.default_model)),
             )
 
+            # Get system prompt from config
+            system_prompt = ai_config.get("system_prompt", "")
+
             # Read image file and encode as base64
             with open(image_path, "rb") as image_file:
                 base64_image = base64.b64encode(image_file.read()).decode("utf-8")
 
             # Get prompt from config
-            prompt = ai_config.get("image_prompt_template")
-            if not prompt:
-                logger.warning("No image prompt template found in config, using default")
-                prompt = "Describe this image briefly."
+            prompt = ai_config.get("image_prompt_template", "Describe this image briefly.")
 
-            # Add image prompt to conversation history
-            image_message = {"role": "user", "content": prompt}
-            self.conversation_history.append(image_message)
+            # Add image prompt to conversation history (text only)
+            self.conversation_history.append({"role": "user", "content": prompt})
 
             # Trim conversation history if it exceeds max length
             if len(self.conversation_history) > self.max_history_messages:
                 self.conversation_history = self.conversation_history[-self.max_history_messages :]
 
-            # For image requests, we need to create a special message format
-            # We keep the conversation history for context but the last message needs special formatting
-            messages = self.conversation_history[:-1] + [
+            # Create full messages list
+            messages = []
+
+            # Add system message if it exists
+            if system_prompt:
+                messages.append({"role": "system", "content": system_prompt})
+
+            # Add conversation history except the last message
+            if len(self.conversation_history) > 1:
+                messages.extend(self.conversation_history[:-1])
+
+            # Add the image message for the current request
+            messages.append(
                 {
                     "role": "user",
                     "content": [
@@ -188,10 +201,9 @@ class PerplexityClient(APIClient):
                         },
                     ],
                 }
-            ]
+            )
 
-            # Prepare request payload - trying OpenAI-like format
-            # This may need to be adjusted based on Perplexity's actual API documentation
+            # Prepare request payload - using OpenAI-compatible format
             payload = {
                 "model": model,
                 "messages": messages,

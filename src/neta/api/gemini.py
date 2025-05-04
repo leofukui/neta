@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 class GeminiClient(APIClient):
     """
     Gemini API client implementation using the latest google-genai SDK.
+    With persistent system prompt support.
     """
 
     def __init__(self, api_key: str, **kwargs):
@@ -38,15 +39,21 @@ class GeminiClient(APIClient):
                 return self._generate_image(message, ai_config)
 
             model_name = ai_config.get("api_model", os.getenv("GEMINI_MODEL", "gemini-2.0-flash-001"))
-            prompt_template = ai_config.get("text_prompt_template")
-            prompt = prompt_template.format(message=message) if prompt_template else message
+            system_prompt = ai_config.get("system_prompt", "")
 
-            self.conversation_history.append({"role": "user", "content": prompt})
+            # Add user message to conversation history
+            self.conversation_history.append({"role": "user", "content": message})
 
-            contents = [
-                genai.types.Content(role=msg["role"], parts=[{"text": msg["content"]}])
-                for msg in self.conversation_history
-            ]
+            # Create content list from conversation history
+            contents = []
+
+            # Add system prompt if it exists
+            if system_prompt:
+                contents.append(genai.types.Content(role="system", parts=[{"text": system_prompt}]))
+
+            # Add conversation history
+            for msg in self.conversation_history:
+                contents.append(genai.types.Content(role=msg["role"], parts=[{"text": msg["content"]}]))
 
             generation_config = genai.types.GenerateContentConfig(
                 max_output_tokens=self.max_tokens,
@@ -62,6 +69,7 @@ class GeminiClient(APIClient):
             response_text = response.text.strip()
             self.conversation_history.append({"role": "model", "content": response_text})
 
+            # Trim conversation history if needed
             if len(self.conversation_history) > self.max_history_messages:
                 self.conversation_history = self.conversation_history[-self.max_history_messages :]
 
@@ -78,18 +86,16 @@ class GeminiClient(APIClient):
         """Send image to Gemini API using vision capabilities."""
         try:
             model_name = ai_config.get("api_vision_model", os.getenv("GEMINI_VISION_MODEL", "gemini-2.0-flash-001"))
+            system_prompt = ai_config.get("system_prompt", "")
 
             with open(image_path, "rb") as image_file:
                 image_data = image_file.read()
 
             # Use passed `message` as prompt, fallback to template or default
-            prompt_template = ai_config.get("image_prompt_template") or "Describe this image briefly."
-            prompt = (
-                prompt_template.format(message=message)
-                if message and "{message}" in prompt_template
-                else message or prompt_template
-            )
+            prompt_template = ai_config.get("image_prompt_template", "Describe this image briefly.")
+            prompt = message or prompt_template
 
+            # Add user message to conversation history (text only)
             self.conversation_history.append({"role": "user", "content": prompt})
 
             generation_config = genai.types.GenerateContentConfig(
@@ -97,20 +103,28 @@ class GeminiClient(APIClient):
                 temperature=self.temperature,
             )
 
-            contents = [
+            # Create content list
+            contents = []
+
+            # Add system prompt if it exists
+            if system_prompt:
+                contents.append(genai.types.Content(role="system", parts=[{"text": system_prompt}]))
+
+            # Add user message with image
+            contents.append(
                 genai.types.Content(
                     role="user",
                     parts=[
                         genai.types.Part(text=prompt),
                         genai.types.Part(
                             inline_data=genai.types.Blob(
-                                mime_type="image/jpeg",  # or png depending on image
+                                mime_type="image/jpeg",
                                 data=image_data,
                             )
                         ),
                     ],
                 )
-            ]
+            )
 
             response = self.client.models.generate_content(
                 model=model_name,
@@ -120,6 +134,10 @@ class GeminiClient(APIClient):
 
             response_text = response.text.strip()
             self.conversation_history.append({"role": "model", "content": response_text})
+
+            # Trim conversation history if needed
+            if len(self.conversation_history) > self.max_history_messages:
+                self.conversation_history = self.conversation_history[-self.max_history_messages :]
 
             logger.info(f"Received image description from Gemini API: {response_text}")
             return response_text, None

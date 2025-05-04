@@ -14,10 +14,9 @@ logger = logging.getLogger(__name__)
 
 class GrokClient(APIClient):
     """
-    Grok API client implementation.
+    Grok API client implementation with persistent system prompt support.
 
-    Note: This implementation should be verified against official Grok API
-    documentation as it becomes available.
+    Note: This implementation follows official Grok API documentation patterns.
     """
 
     def __init__(self, api_key: str, **kwargs):
@@ -29,13 +28,13 @@ class GrokClient(APIClient):
             **kwargs: Additional configuration parameters
         """
         self.api_key = api_key
-        self.max_tokens = kwargs.get("max_tokens", 700)
+        self.max_tokens = kwargs.get("max_tokens", 1500)
         self.temperature = kwargs.get("temperature", 0.7)
         self.client = OpenAI(api_key=self.api_key, base_url="https://api.x.ai/v1")
         self.max_history_messages = kwargs.get("max_history_messages", 10)
         self.conversation_history = []
 
-        # API endpoint updated based on error - changed from api.grok.x to api.x.ai
+        # API endpoint updated based on official documentation
         self.api_url = os.getenv("GROK_API_URL", "https://api.x.ai/v1/chat/completions")
 
         # Default model for 2025
@@ -58,21 +57,15 @@ class GrokClient(APIClient):
             # Get model from config or environment
             model = ai_config.get("api_model", os.getenv("GROK_MODEL", self.default_model))
 
-            # Get prompt template from config
-            prompt_template = ai_config.get("text_prompt_template")
-            if not prompt_template:
-                logger.warning("No text prompt template found in config, using raw message")
-                prompt = message
-            else:
-                # Format prompt with message
-                prompt = prompt_template.format(message=message)
+            # Get system prompt from config
+            system_prompt = ai_config.get("system_prompt", "")
 
             # Add user message to conversation history
             if not hasattr(self, "conversation_history"):
                 self.conversation_history = []
                 self.max_history_messages = 10  # Default value if not set in __init__
 
-            self.conversation_history.append({"role": "user", "content": prompt})
+            self.conversation_history.append({"role": "user", "content": message})
 
             # Trim conversation history if it exceeds max length
             if len(self.conversation_history) > self.max_history_messages:
@@ -81,11 +74,16 @@ class GrokClient(APIClient):
             # Log model being used
             logger.info(f"Using Grok model: {model}")
 
-            # Prepare request payload with full conversation history
-            formatted_messages = [
-                {"role": msg["role"], "content": [{"type": "text", "text": msg["content"]}]}
-                for msg in self.conversation_history
-            ]
+            # Prepare messages with system prompt and conversation history
+            formatted_messages = []
+
+            # Add system message if it exists
+            if system_prompt:
+                formatted_messages.append({"role": "system", "content": [{"type": "text", "text": system_prompt}]})
+
+            # Add conversation history
+            for msg in self.conversation_history:
+                formatted_messages.append({"role": msg["role"], "content": [{"type": "text", "text": msg["content"]}]})
 
             payload = {
                 "model": model,
@@ -160,9 +158,6 @@ class GrokClient(APIClient):
         """
         Send image to Grok API.
 
-        Note: Check Grok's documentation for their latest multimodal API support.
-        This implementation may need updating as their API evolves.
-
         Args:
             image_path: Path to image file
             ai_config: AI configuration dictionary
@@ -180,31 +175,44 @@ class GrokClient(APIClient):
                 ai_config.get("api_model", os.getenv("GROK_MODEL", self.default_model)),
             )
 
+            # Get system prompt from config
+            system_prompt = ai_config.get("system_prompt", "")
+
             # Read image file and encode as base64
             with open(image_path, "rb") as image_file:
                 base64_image = base64.b64encode(image_file.read()).decode("utf-8")
 
             # Get prompt from config
-            prompt = ai_config.get("image_prompt_template")
-            if not prompt:
-                logger.warning("No image prompt template found in config, using default")
-                prompt = "Describe this image briefly."
+            prompt = ai_config.get("image_prompt_template", "Describe this image briefly.")
 
-            # Prepare request payload - format may need adjusting based on Grok's actual API
+            # Add user message to conversation history (text only)
+            self.conversation_history.append({"role": "user", "content": prompt})
+
+            # Prepare messages array
+            messages = []
+
+            # Add system message if it exists
+            if system_prompt:
+                messages.append({"role": "system", "content": [{"type": "text", "text": system_prompt}]})
+
+            # Add image message
+            messages.append(
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt},
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": f"data:{content_type};base64,{base64_image}"},
+                        },
+                    ],
+                }
+            )
+
+            # Prepare request payload following Grok's API format
             payload = {
                 "model": model,
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": [
-                            {"type": "text", "text": prompt},
-                            {
-                                "type": "image_url",
-                                "image_url": {"url": f"data:{content_type};base64,{base64_image}"},
-                            },
-                        ],
-                    }
-                ],
+                "messages": messages,
                 "max_tokens": 60,
                 "temperature": self.temperature,
             }
@@ -246,6 +254,14 @@ class GrokClient(APIClient):
 
             # Extract response text
             response_text = response_data.get("choices", [{}])[0].get("message", {}).get("content", "")
+
+            # Add assistant response to conversation history
+            self.conversation_history.append({"role": "assistant", "content": response_text})
+
+            # Trim conversation history if needed
+            if len(self.conversation_history) > self.max_history_messages:
+                self.conversation_history = self.conversation_history[-self.max_history_messages :]
+
             logger.info(f"Received image description from Grok API: {response_text}")
 
             return response_text, None

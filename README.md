@@ -24,6 +24,14 @@ It's fully chat-based because I wanted to make use of the plans I’ve already p
 
 Anyway, cheers.
 
+## ⚠️ Deprecation Notice: Browser Integration
+
+The **browser-based integration** (UI automation via Selenium) is **deprecated** and will be **removed soon** from the codebase.
+
+> 🧼 It was a great hack for fast prototyping, but it's time to clean things up.
+
+Moving forward, **API-based integration is the priority** — it offers **better reliability, performance, and stability** across all supported platforms.
+
 
 **👉 Meet the Crew (Your AI Agents):**
 
