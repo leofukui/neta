@@ -1,5 +1,6 @@
+import asyncio
 import os
-import time
+from typing import Dict, List, Optional, Tuple
 
 from ..core.config import Config
 from ..core.integration import IntegrationManager
@@ -15,7 +16,7 @@ logger = setup_logger()
 
 class NetaAutomation:
     """
-    Main automation class for Neta.
+    Main automation class for Neta with asyncio support.
     """
 
     def __init__(self, config_path=None):
@@ -25,7 +26,7 @@ class NetaAutomation:
         Args:
             config_path: Path to configuration file (default: from environment or config.json)
         """
-        logger.info("Initializing Neta automation")
+        logger.info("Initializing Neta automation with asyncio support")
 
         # Load configuration
         self.config = Config(config_path)
@@ -50,6 +51,18 @@ class NetaAutomation:
         self.whatsapp_ui = None
         self.ai_platform_ui = None
         self.integration_manager = None
+
+        # Locks for group chats to prevent race conditions
+        self.group_locks: Dict[str, asyncio.Lock] = {}
+
+        # Event loop for asyncio
+        self.loop = None
+
+        # Active tasks
+        self.tasks = []
+
+        # Shutdown flag
+        self.shutdown_event = asyncio.Event()
 
     def _check_if_browser_needed_for_ai(self):
         """
@@ -82,11 +95,16 @@ class NetaAutomation:
         logger.info("All AI platforms are using APIs, no browser needed for AI")
         return False
 
-    def setup(self):
-        """Set up browser and UI components."""
+    async def setup(self):
+        """Set up browser and UI components asynchronously."""
         try:
             # Set up browser with WhatsApp and AI platform tabs if needed
             logger.info("Setting up browser")
+
+            # Create locks for each group chat
+            for group_name in self.config.get_ai_mappings().keys():
+                self.group_locks[group_name] = asyncio.Lock()
+                logger.debug(f"Created lock for group: {group_name}")
 
             # If using browser for AI, include AI tabs in setup
             if self.use_browser_for_ai:
@@ -123,9 +141,10 @@ class NetaAutomation:
             logger.error(f"Setup failed: {e}")
             return False
 
-    def process_message(self, group_name, message, message_type):
+    async def process_message(self, group_name, message, message_type):
         """
         Process a message by sending it to appropriate AI platform and returning response.
+        This method now includes locking to prevent race conditions.
 
         Args:
             group_name: Name of the WhatsApp group
@@ -135,51 +154,66 @@ class NetaAutomation:
         Returns:
             Tuple of (text_response, image_path) or (None, None) if failed
         """
-        try:
-            # Get AI configuration for this group
-            ai_config = self.config.get_ai_config(group_name)
-            if not ai_config:
-                logger.warning(f"No AI mapping found for group: {group_name}")
-                return None, None
+        # Acquire lock for this group to prevent race conditions
+        async with self.group_locks[group_name]:
+            try:
+                logger.info(f"Processing {message_type} message for {group_name}")
 
-            # Get platform name from config
-            platform_name = ai_config.get("api_platform", "").lower()
-
-            # Check if using API for this platform
-            use_api = os.getenv(f"USE_{platform_name.upper()}_API", "false").lower() == "true"
-
-            if use_api and platform_name:
-                # Use integration manager to handle API request
-                logger.info(f"Using API integration for {group_name} ({platform_name})")
-                return self.integration_manager.process_message(group_name, message, message_type)
-            else:
-                # Use browser automation (original method)
-                logger.info(f"Using browser automation for {group_name}")
-
-                # Switch to AI platform tab
-                tab_name = ai_config["tab_name"]
-                if not self.browser_manager.switch_to_tab(tab_name):
-                    logger.error(f"Failed to switch to tab: {tab_name}")
+                # Get AI configuration for this group
+                ai_config = self.config.get_ai_config(group_name)
+                if not ai_config:
+                    logger.warning(f"No AI mapping found for group: {group_name}")
                     return None, None
 
-                # Send message to AI platform
-                if message_type == "text":
-                    logger.info(f"Processing text message for {group_name}")
-                    response = self.ai_platform_ui.send_text_message(ai_config, message)
-                    # Browser UI doesn't support image generation yet
-                    return response, None
-                else:  # message_type == "image"
-                    logger.info(f"Processing image message for {group_name}")
-                    response = self.ai_platform_ui.send_image(ai_config, message)
-                    return response, None
+                # Get platform name from config
+                platform_name = ai_config.get("api_platform", "").lower()
 
-        except Exception as e:
-            logger.error(f"Error processing message: {e}")
-            return None, None
+                # Check if using API for this platform
+                use_api = os.getenv(f"USE_{platform_name.upper()}_API", "false").lower() == "true"
 
-    def send_response(self, response_data, group_name):
+                if use_api and platform_name:
+                    # Use integration manager to handle API request
+                    logger.info(f"Using API integration for {group_name} ({platform_name})")
+
+                    # Note: If integration_manager.process_message is blocking,
+                    # we should run it in a thread pool executor
+                    return await self.loop.run_in_executor(
+                        None, lambda: self.integration_manager.process_message(group_name, message, message_type)
+                    )
+                else:
+                    # Use browser automation (original method)
+                    logger.info(f"Using browser automation for {group_name}")
+
+                    # Switch to AI platform tab
+                    tab_name = ai_config["tab_name"]
+                    tab_switch_success = await self.loop.run_in_executor(
+                        None, lambda: self.browser_manager.switch_to_tab(tab_name)
+                    )
+
+                    if not tab_switch_success:
+                        logger.error(f"Failed to switch to tab: {tab_name}")
+                        return None, None
+
+                    # Send message to AI platform
+                    if message_type == "text":
+                        response = await self.loop.run_in_executor(
+                            None, lambda: self.ai_platform_ui.send_text_message(ai_config, message)
+                        )
+                        # Browser UI doesn't support image generation yet
+                        return response, None
+                    else:  # message_type == "image"
+                        response = await self.loop.run_in_executor(
+                            None, lambda: self.ai_platform_ui.send_image(ai_config, message)
+                        )
+                        return response, None
+
+            except Exception as e:
+                logger.error(f"Error processing message: {e}")
+                return None, None
+
+    async def send_response(self, response_data, group_name):
         """
-        Send AI response back to WhatsApp.
+        Send AI response back to WhatsApp with locking.
 
         Args:
             response_data: Response from AI (can be text or tuple of (text, image_path))
@@ -188,119 +222,245 @@ class NetaAutomation:
         Returns:
             Boolean indicating success
         """
+        # Acquire lock for this group to prevent race conditions
+        async with self.group_locks[group_name]:
+            try:
+                # Switch to WhatsApp tab
+                tab_switch_success = await self.loop.run_in_executor(
+                    None, lambda: self.browser_manager.switch_to_tab("WhatsApp")
+                )
+
+                if not tab_switch_success:
+                    logger.error("Failed to switch to WhatsApp tab")
+                    return False
+
+                # Select chat
+                chat_select_success = await self.loop.run_in_executor(
+                    None, lambda: self.whatsapp_ui.select_chat(group_name)
+                )
+
+                if not chat_select_success:
+                    logger.error(f"Failed to select chat: {group_name}")
+                    return False
+
+                # Handle different response formats
+                text_response = None
+                image_path = None
+
+                if isinstance(response_data, tuple) and len(response_data) == 2:
+                    # Tuple format: (text_response, image_path)
+                    text_response, image_path = response_data
+                elif isinstance(response_data, str):
+                    # String format: just text response
+                    text_response = response_data
+
+                # Switch back to WhatsApp tab and select chat (in case of any tab changes during processing)
+                tab_switch_success = await self.loop.run_in_executor(
+                    None, lambda: self.browser_manager.switch_to_tab("WhatsApp")
+                )
+
+                if not tab_switch_success:
+                    logger.error("Failed to switch to WhatsApp tab")
+                    return False
+
+                chat_select_success = await self.loop.run_in_executor(
+                    None, lambda: self.whatsapp_ui.select_chat(group_name)
+                )
+
+                if not chat_select_success:
+                    logger.error(f"Failed to select chat: {group_name}")
+                    return False
+
+                # Send message
+                success = await self.loop.run_in_executor(
+                    None, lambda: self.whatsapp_ui.send_message(text_response, image_path)
+                )
+
+                if success:
+                    # Cache the text response
+                    if text_response:
+                        self.message_cache.cache_content(text_response, group_name)
+                    # Cache the image path if there is one
+                    if image_path:
+                        self.message_cache.cache_content(f"image:{image_path}", group_name)
+                    logger.info(f"Sent and cached response to {group_name}")
+
+                return success
+            except Exception as e:
+                logger.error(f"Error sending response: {e}")
+                return False
+
+    async def check_messages(self, group_names):
+        """
+        Check for new messages in WhatsApp groups asynchronously.
+
+        Args:
+            group_names: List of WhatsApp group names to check
+
+        Returns:
+            Tuple of (group_name, message, message_type) or (None, None, None) if no new messages
+        """
         try:
             # Switch to WhatsApp tab
-            if not self.browser_manager.switch_to_tab("WhatsApp"):
+            tab_switch_success = await self.loop.run_in_executor(
+                None, lambda: self.browser_manager.switch_to_tab("WhatsApp")
+            )
+
+            if not tab_switch_success:
                 logger.error("Failed to switch to WhatsApp tab")
-                return False
+                return None, None, None
 
-            # Select chat
-            if not self.whatsapp_ui.select_chat(group_name):
-                logger.error(f"Failed to select chat: {group_name}")
-                return False
+            # Run get_new_messages in executor since it's a blocking operation
+            result = await self.loop.run_in_executor(
+                None, lambda: self.whatsapp_ui.get_new_messages(group_names, self.message_cache)
+            )
 
-            # Handle different response formats
-            text_response = None
-            image_path = None
-
-            if isinstance(response_data, tuple) and len(response_data) == 2:
-                # Tuple format: (text_response, image_path)
-                text_response, image_path = response_data
-            elif isinstance(response_data, str):
-                # String format: just text response
-                text_response = response_data
-
-            # Send message and cache sent response
-            if not self.browser_manager.switch_to_tab("WhatsApp"):
-                logger.error("Failed to switch to WhatsApp tab")
-                return False
-            if not self.whatsapp_ui.select_chat(group_name):
-                logger.error(f"Failed to select chat: {group_name}")
-                return False
-
-            success = self.whatsapp_ui.send_message(text_response, image_path)
-            if success:
-                # Cache the text response
-                if text_response:
-                    self.message_cache.cache_content(text_response, group_name)
-                # Cache the image path if there is one
-                if image_path:
-                    self.message_cache.cache_content(f"image:{image_path}", group_name)
-                logger.info("Sent and cached response")
-
-            return success
+            return result
         except Exception as e:
-            logger.error(f"Error sending response: {e}")
-            return False
+            logger.error(f"Error checking messages: {e}")
+            return None, None, None
 
-    def cleanup_temp_files(self):
-        """Clean up temporary image files."""
-        self.image_manager.cleanup_old_files()
+    async def cleanup_temp_files(self):
+        """Clean up temporary image files asynchronously."""
+        await self.loop.run_in_executor(None, self.image_manager.cleanup_old_files)
+        logger.info("Cleaned up temporary files")
 
-    def run(self):
+    async def handle_message(self, group_name, message, message_type):
         """
-        Run the main automation loop.
+        Handle a single message processing workflow.
 
-        This method continuously monitors WhatsApp chats for new messages,
-        processes them with the appropriate AI platform, and sends responses.
+        Args:
+            group_name: Name of the WhatsApp group
+            message: Message content
+            message_type: Type of message ('text' or 'image')
         """
         try:
-            if not self.setup():
+            logger.info(f"Started handling {message_type} message in {group_name}")
+
+            # Process with appropriate AI
+            response = await self.process_message(group_name, message, message_type)
+
+            # Send response back to WhatsApp if we got something
+            if response and (response[0] or response[1]):  # If text or image is returned
+                await self.send_response(response, group_name)
+                logger.info(f"Completed handling message in {group_name}")
+            else:
+                logger.warning(f"No valid response obtained for message in {group_name}")
+        except Exception as e:
+            logger.error(f"Error handling message for {group_name}: {e}")
+
+    async def message_poller(self):
+        """
+        Poll for new messages and spawn tasks to handle them.
+        This runs continuously until shutdown is requested.
+        """
+        cleanup_counter = 0
+        group_names = list(self.config.get_ai_mappings().keys())
+
+        while not self.shutdown_event.is_set():
+            try:
+                # Check for new messages
+                group_name, message, message_type = await self.check_messages(group_names)
+
+                # Process new message if found
+                if group_name and (message or message_type == "image"):
+                    logger.info(f"New {message_type} message in {group_name}")
+
+                    # Create a task to handle this message
+                    task = asyncio.create_task(self.handle_message(group_name, message, message_type))
+                    self.tasks.append(task)
+
+                    # Clean up finished tasks
+                    self.tasks = [t for t in self.tasks if not t.done()]
+
+                # Periodically cleanup temp files
+                cleanup_counter += 1
+                if cleanup_counter >= 120:  # Every ~10 minutes (with 5s delay)
+                    await self.cleanup_temp_files()
+                    cleanup_counter = 0
+
+                # Short delay before next check
+                await asyncio.sleep(self.config.loop_interval_delay)
+
+            except asyncio.CancelledError:
+                logger.info("Message poller task was cancelled")
+                break
+            except Exception as e:
+                logger.error(f"Error in message poller: {e}")
+                await asyncio.sleep(self.config.loop_interval_delay)
+
+    async def run_async(self):
+        """
+        Run the main automation loop with asyncio.
+        """
+        self.loop = asyncio.get_running_loop()
+
+        try:
+            # Setup browser and UI components
+            setup_success = await self.setup()
+            if not setup_success:
                 logger.error("Setup failed, exiting")
                 return
 
-            logger.info("Starting message monitoring loop")
-            cleanup_counter = 0
+            logger.info("Starting async message monitoring")
 
-            while True:
-                try:
-                    # Switch to WhatsApp tab
-                    if not self.browser_manager.switch_to_tab("WhatsApp"):
-                        logger.error("Failed to switch to WhatsApp tab")
-                        time.sleep(self.config.loop_interval_delay)
-                        continue
+            # Start the message poller
+            poller_task = asyncio.create_task(self.message_poller())
 
-                    # Check for new messages in configured groups
-                    group_names = list(self.config.get_ai_mappings().keys())
-                    group_name, message, message_type = self.whatsapp_ui.get_new_messages(
-                        group_names, self.message_cache
-                    )
+            # Wait for shutdown signal (e.g., KeyboardInterrupt handled by run())
+            await self.shutdown_event.wait()
 
-                    # Process new message if found
-                    if group_name and (message or message_type == "image"):
-                        logger.info(f"New {message_type} message in {group_name}")
+            # Cancel the poller task
+            poller_task.cancel()
+            try:
+                await poller_task
+            except asyncio.CancelledError:
+                pass
 
-                        # Process with appropriate AI
-                        response = self.process_message(group_name, message, message_type)
+            # Wait for any remaining tasks to complete (with timeout)
+            if self.tasks:
+                logger.info(f"Waiting for {len(self.tasks)} active tasks to complete...")
+                done, pending = await asyncio.wait(self.tasks, timeout=10)
 
-                        # Send response back to WhatsApp
-                        if response and (response[0] or response[1]):  # If text or image is returned
-                            self.send_response(response, group_name)
+                # Cancel any tasks that didn't complete within timeout
+                for task in pending:
+                    task.cancel()
 
-                    # Periodically cleanup temp files
-                    cleanup_counter += 1
-                    if cleanup_counter >= 120:  # Every ~10 minutes (with 5s delay)
-                        self.cleanup_temp_files()
-                        cleanup_counter = 0
+        except Exception as e:
+            logger.error(f"Unexpected error in run_async: {e}")
+        finally:
+            await self.cleanup_async()
 
-                    # Delay before next check
-                    time.sleep(self.config.loop_interval_delay)
+    async def cleanup_async(self):
+        """Close browser and perform cleanup asynchronously."""
+        if self.browser_manager:
+            await self.loop.run_in_executor(None, self.browser_manager.close)
+        logger.info("Async cleanup completed")
 
-                except KeyboardInterrupt:
-                    raise
-                except Exception as e:
-                    logger.error(f"Error in main loop: {e}")
-                    time.sleep(self.config.loop_interval_delay)
-
+    def run(self):
+        """
+        Entry point for the application.
+        Sets up asyncio event loop and handles signals.
+        """
+        try:
+            # Run the async application
+            asyncio.run(self.run_async())
         except KeyboardInterrupt:
             logger.info("Shutting down...")
         except Exception as e:
-            logger.error(f"Unexpected error: {e}")
-        finally:
+            logger.error(f"Unexpected error in run: {e}")
+            # Attempt synchronous cleanup as fallback
             self.cleanup()
 
     def cleanup(self):
-        """Close browser and perform cleanup."""
+        """Synchronous fallback cleanup method."""
         if self.browser_manager:
             self.browser_manager.close()
         logger.info("Cleanup completed")
+
+    def signal_shutdown(self):
+        """Signal all async tasks to shut down."""
+        if self.loop and self.shutdown_event:
+            # Use call_soon_threadsafe for thread safety
+            self.loop.call_soon_threadsafe(self.shutdown_event.set)
+            logger.info("Shutdown signaled")

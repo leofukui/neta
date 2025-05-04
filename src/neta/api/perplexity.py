@@ -25,7 +25,7 @@ class PerplexityClient(APIClient):
             **kwargs: Additional configuration parameters
         """
         self.api_key = api_key
-        self.max_tokens = kwargs.get("max_tokens", 1000)
+        self.max_tokens = kwargs.get("max_tokens", 2500)
         self.temperature = kwargs.get("temperature", 0.7)
         # Add conversation history tracking
         self.max_history_messages = kwargs.get("max_history_messages", 10)

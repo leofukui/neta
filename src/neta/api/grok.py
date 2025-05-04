@@ -28,7 +28,7 @@ class GrokClient(APIClient):
             **kwargs: Additional configuration parameters
         """
         self.api_key = api_key
-        self.max_tokens = kwargs.get("max_tokens", 1500)
+        self.max_tokens = kwargs.get("max_tokens", 2500)
         self.temperature = kwargs.get("temperature", 0.7)
         self.client = OpenAI(api_key=self.api_key, base_url="https://api.x.ai/v1")
         self.max_history_messages = kwargs.get("max_history_messages", 10)
