@@ -107,18 +107,11 @@ class WhatsAppUI:
 
                 # Check if the most recent message is from the current user (message-out)
                 latest_container = message_containers[-1]
-                message_type_divs = latest_container.find_elements(
-                    By.CSS_SELECTOR, "div.message-in, div.message-out"
-                )
-                if message_type_divs and "message-out" in message_type_divs[0].get_attribute(
-                    "class"
-                ):
+                if "message-out" in latest_container.get_attribute("class"):
                     logger.debug(
                         f"Most recent message in {group_name} is from current user, skipping"
                     )
                     continue
-
-                # If we're here, the latest message is an incoming message (message-in)
 
                 # Check for images in the latest incoming message
                 result = self._check_for_image(latest_container, group_name, message_cache)

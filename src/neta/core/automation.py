@@ -173,10 +173,6 @@ class NetaAutomation:
                     response = self.ai_platform_ui.send_image(ai_config, message)
                     return response, None
 
-                # Refresh AI page to prepare for next interaction
-                if response:
-                    self.ai_platform_ui.refresh_page()
-
         except Exception as e:
             logger.error(f"Error processing message: {e}")
             return None, None
@@ -215,6 +211,13 @@ class NetaAutomation:
                 text_response = response_data
 
             # Send message and cache sent response
+            if not self.browser_manager.switch_to_tab("WhatsApp"):
+                logger.error("Failed to switch to WhatsApp tab")
+                return False
+            if not self.whatsapp_ui.select_chat(group_name):
+                logger.error(f"Failed to select chat: {group_name}")
+                return False
+
             success = self.whatsapp_ui.send_message(text_response, image_path)
             if success:
                 # Cache the text response

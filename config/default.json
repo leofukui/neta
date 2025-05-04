@@ -20,7 +20,7 @@
       "api_platform": "perplexity",
       "api_model": "sonar",
       "api_vision_model": "sonar",
-      "text_prompt_template": "Respond in 60 characters or fewer with meaningful output only, unless asked for complete message, then 600 chars are allowed. If asked for translation, only translate (fully). If asked 'complete'. (no emoji and only ascii chars), task: {message}",
+      "text_prompt_template": "Respond in 60 characters or fewer with meaningful output only, unless asked for complete message, then 600 chars are allowed. Message suitable for Whatsapp, no special format. If asked for translation, only translate (fully). If asked 'complete'. (no emoji and only ascii chars), task: {message}",
       "image_prompt_template": "Describe the image in 60 characters or fewer, with useful detail (product name, model, specie, location). Do not use emojis or invalid characters (only ascii)."
     },
     "Gemininas": {
@@ -30,7 +30,7 @@
       "response_selector": ".response-container:last-child .markdown",
       "api_platform": "gemini",
       "api_model": "gemini-2.0-flash-lite",
-      "api_vision_model": "gemini-2.0-flash-lite",
+      "api_vision_model": "gemini-2.0-flash",
       "text_prompt_template": "Respond in 60 characters or fewer with meaningful output only, unless asked for complete message, then 600 chars are allowed. If asked for translation, only translate (fully). If asked 'complete'. (no emoji and only ascii chars), task: {message}",
       "image_prompt_template": "Describe the image in 60 characters or fewer, with useful detail (product name, model, specie, location). Do not use emojis or invalid characters (only ascii)."
     },
@@ -46,7 +46,7 @@
       "enable_image_generation": true,
       "image_temperature": 0.9,
       "text_prompt_template": "{message}",
-      "image_prompt_template": "Make a Van Gogh style of this picture"
+      "image_prompt_template": "{message}"
     },
     "Birdo": {
       "url": "https://grok.com/",

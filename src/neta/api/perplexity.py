@@ -26,9 +26,12 @@ class PerplexityClient(APIClient):
             **kwargs: Additional configuration parameters
         """
         self.api_key = api_key
-        self.max_tokens = kwargs.get("max_tokens", 100)
+        self.max_tokens = kwargs.get("max_tokens", 500)
         self.temperature = kwargs.get("temperature", 0.7)
         self.max_image_size_kb = kwargs.get("max_image_size_kb", 500)
+        # Add conversation history tracking
+        self.max_history_messages = kwargs.get("max_history_messages", 10)
+        self.conversation_history = []
 
         # API endpoint - verify this is current
         self.api_url = os.getenv("PERPLEXITY_API_URL", "https://api.perplexity.ai/chat/completions")
@@ -64,13 +67,20 @@ class PerplexityClient(APIClient):
                 # Format prompt with message
                 prompt = prompt_template.format(message=message)
 
+            # Add user message to conversation history
+            self.conversation_history.append({"role": "user", "content": prompt})
+
+            # Trim conversation history if it exceeds max length
+            if len(self.conversation_history) > self.max_history_messages:
+                self.conversation_history = self.conversation_history[-self.max_history_messages :]
+
             # Log model being used
             logger.info(f"Using Perplexity model: {model}")
 
-            # Prepare request payload - updated format to match Perplexity API requirements
+            # Prepare request payload with conversation history
             payload = {
                 "model": model,
-                "messages": [{"role": "user", "content": prompt}],
+                "messages": self.conversation_history,  # Use the full conversation history
                 "max_tokens": self.max_tokens,
                 "temperature": self.temperature,
             }
@@ -109,6 +119,10 @@ class PerplexityClient(APIClient):
             response_text = (
                 response_data.get("choices", [{}])[0].get("message", {}).get("content", "")
             )
+
+            # Add assistant response to conversation history
+            self.conversation_history.append({"role": "assistant", "content": response_text})
+
             logger.info(f"Received response from Perplexity API: {response_text[:50]}...")
 
             return response_text, None
@@ -165,22 +179,34 @@ class PerplexityClient(APIClient):
                 logger.warning("No image prompt template found in config, using default")
                 prompt = "Describe this image briefly."
 
+            # Add image prompt to conversation history
+            image_message = {"role": "user", "content": prompt}
+            self.conversation_history.append(image_message)
+
+            # Trim conversation history if it exceeds max length
+            if len(self.conversation_history) > self.max_history_messages:
+                self.conversation_history = self.conversation_history[-self.max_history_messages :]
+
+            # For image requests, we need to create a special message format
+            # We keep the conversation history for context but the last message needs special formatting
+            messages = self.conversation_history[:-1] + [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt},
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": f"data:{content_type};base64,{base64_image}"},
+                        },
+                    ],
+                }
+            ]
+
             # Prepare request payload - trying OpenAI-like format
             # This may need to be adjusted based on Perplexity's actual API documentation
             payload = {
                 "model": model,
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": [
-                            {"type": "text", "text": prompt},
-                            {
-                                "type": "image_url",
-                                "image_url": {"url": f"data:{content_type};base64,{base64_image}"},
-                            },
-                        ],
-                    }
-                ],
+                "messages": messages,
                 "max_tokens": 60,
                 "temperature": self.temperature,
             }
@@ -219,6 +245,10 @@ class PerplexityClient(APIClient):
             response_text = (
                 response_data.get("choices", [{}])[0].get("message", {}).get("content", "")
             )
+
+            # Add assistant response to conversation history
+            self.conversation_history.append({"role": "assistant", "content": response_text})
+
             logger.info(f"Received image description from Perplexity API: {response_text}")
 
             return response_text, None
@@ -229,7 +259,14 @@ class PerplexityClient(APIClient):
             logger.warning(
                 "Perplexity API may not support image inputs; falling back to browser automation"
             )
-            return None
+            return None, None
         except Exception as e:
             logger.error(f"Error sending image to Perplexity API: {e}")
             return None, None
+
+    def clear_conversation_history(self):
+        """
+        Clear the conversation history.
+        """
+        self.conversation_history = []
+        logger.info("Cleared conversation history")

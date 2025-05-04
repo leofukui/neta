@@ -49,7 +49,7 @@ class GeminiClient(APIClient):
             self.conversation_history.append({"role": "user", "content": prompt})
 
             contents = [
-                genai.types.Content(role=msg["role"], parts=[msg["content"]])
+                genai.types.Content(role=msg["role"], parts=[{"text": msg["content"]}])
                 for msg in self.conversation_history
             ]
 
@@ -107,10 +107,9 @@ class GeminiClient(APIClient):
                 max_output_tokens=60,
                 temperature=self.temperature,
             )
-
             contents = [
-                prompt,
-                genai.types.Part.from_bytes(data=image_data, mime_type=content_type),
+                genai.types.Content(role=msg["role"], parts=[{"text": msg["content"]}])
+                for msg in self.conversation_history
             ]
 
             response = self.client.models.generate_content(
@@ -148,7 +147,7 @@ class GeminiClient(APIClient):
                     number_of_images=1,
                     safety_filter_level="block_low_and_above",
                     person_generation="allow_adult",
-                    aspect_ratio="3:4",
+                    aspect_ratio="9:16",
                     output_mime_type="image/jpeg",
                 ),
             )
