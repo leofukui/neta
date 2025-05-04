@@ -1,6 +1,6 @@
 import asyncio
 import os
-from typing import Dict, List, Optional, Tuple
+from typing import Dict
 
 from ..core.config import Config
 from ..core.integration import IntegrationManager
@@ -54,6 +54,9 @@ class NetaAutomation:
 
         # Locks for group chats to prevent race conditions
         self.group_locks: Dict[str, asyncio.Lock] = {}
+
+        # Track which messages are currently being processed
+        self.processing_messages: Dict[str, set] = {}
 
         # Event loop for asyncio
         self.loop = None
@@ -310,10 +313,37 @@ class NetaAutomation:
                 logger.error("Failed to switch to WhatsApp tab")
                 return None, None, None
 
+            # Get list of groups that don't have active locks (not being processed)
+            available_groups = []
+            for group in group_names:
+                if group in self.group_locks and not self.group_locks[group].locked():
+                    available_groups.append(group)
+                else:
+                    logger.debug(f"Skipping check for {group} as it's currently being processed")
+
+            if not available_groups:
+                # All groups are being processed, skip this polling cycle
+                logger.debug("All groups are currently being processed, skipping check")
+                return None, None, None
+
             # Run get_new_messages in executor since it's a blocking operation
+            # Only check groups that aren't currently locked
             result = await self.loop.run_in_executor(
-                None, lambda: self.whatsapp_ui.get_new_messages(group_names, self.message_cache)
+                None, lambda: self.whatsapp_ui.get_new_messages(available_groups, self.message_cache)
             )
+
+            # If we got a result, immediately acquire the lock to prevent double-processing
+            if result and result[0]:
+                group_name = result[0]
+                # Try to acquire the lock without waiting
+                if not self.group_locks[group_name].locked():
+                    # Mark that we're going to process this message
+                    # The actual lock acquisition happens in handle_message
+                    logger.info(f"Reserving message from {group_name} for processing")
+                else:
+                    # Another task just grabbed this message, skip it
+                    logger.warning(f"Race condition detected for {group_name}, skipping message")
+                    return None, None, None
 
             return result
         except Exception as e:
@@ -334,6 +364,21 @@ class NetaAutomation:
             message: Message content
             message_type: Type of message ('text' or 'image')
         """
+        # Create a unique message identifier
+        message_id = f"{message_type}:{message}"
+
+        # Check if this exact message is already being processed
+        if group_name in self.processing_messages and message_id in self.processing_messages[group_name]:
+            logger.warning(
+                f"Message '{message_id[:30]}...' in {group_name} is already being processed, skipping duplicate"
+            )
+            return
+
+        # Mark this message as being processed
+        if group_name not in self.processing_messages:
+            self.processing_messages[group_name] = set()
+        self.processing_messages[group_name].add(message_id)
+
         try:
             logger.info(f"Started handling {message_type} message in {group_name}")
 
@@ -348,6 +393,11 @@ class NetaAutomation:
                 logger.warning(f"No valid response obtained for message in {group_name}")
         except Exception as e:
             logger.error(f"Error handling message for {group_name}: {e}")
+        finally:
+            # Mark message as no longer being processed
+            if group_name in self.processing_messages and message_id in self.processing_messages[group_name]:
+                self.processing_messages[group_name].remove(message_id)
+                logger.debug(f"Removed message '{message_id[:30]}...' from processing list for {group_name}")
 
     async def message_poller(self):
         """
@@ -357,13 +407,39 @@ class NetaAutomation:
         cleanup_counter = 0
         group_names = list(self.config.get_ai_mappings().keys())
 
+        # Initialize the processing tracking dict for each group
+        for group_name in group_names:
+            self.processing_messages[group_name] = set()
+
+        # Set polling delay based on system load
+        base_delay = self.config.loop_interval_delay
+        min_delay = max(1.0, base_delay / 2)  # Never poll faster than once per second
+
         while not self.shutdown_event.is_set():
             try:
-                # Check for new messages
+                # Adjust polling delay based on active tasks
+                current_task_count = len(self.tasks)
+                # Slow down polling if we have many active tasks
+                adjusted_delay = min(base_delay * (1 + 0.2 * current_task_count), base_delay * 3)
+                # But don't slow down too much
+                actual_delay = max(min_delay, adjusted_delay)
+
+                if current_task_count > 0:
+                    logger.debug(f"Currently processing {current_task_count} messages, poll delay: {actual_delay:.2f}s")
+
+                # Check for new messages in groups that aren't currently locked
                 group_name, message, message_type = await self.check_messages(group_names)
 
                 # Process new message if found
                 if group_name and (message or message_type == "image"):
+                    # Create a message identifier
+                    message_id = f"{message_type}:{message}"
+
+                    # Check if this message is already being processed
+                    if message_id in self.processing_messages.get(group_name, set()):
+                        logger.warning(f"Duplicate message detected in {group_name}, skipping")
+                        continue
+
                     logger.info(f"New {message_type} message in {group_name}")
 
                     # Create a task to handle this message
@@ -379,15 +455,21 @@ class NetaAutomation:
                     await self.cleanup_temp_files()
                     cleanup_counter = 0
 
-                # Short delay before next check
-                await asyncio.sleep(self.config.loop_interval_delay)
+                    # Also log stats about processing
+                    logger.info(
+                        f"Status: {len(self.tasks)} active tasks, "
+                        + f"{sum(len(msgs) for msgs in self.processing_messages.values())} messages being processed"
+                    )
+
+                # Adaptive delay before next check
+                await asyncio.sleep(actual_delay)
 
             except asyncio.CancelledError:
                 logger.info("Message poller task was cancelled")
                 break
             except Exception as e:
                 logger.error(f"Error in message poller: {e}")
-                await asyncio.sleep(self.config.loop_interval_delay)
+                await asyncio.sleep(base_delay * 2)  # Longer delay on error
 
     async def run_async(self):
         """
