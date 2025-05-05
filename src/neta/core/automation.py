@@ -343,7 +343,7 @@ class NetaAutomation:
                 # Slow down polling if we have many active tasks
 
                 if current_task_count > 0:
-                    logger.debug(f"Currently processing {current_task_count} messages, poll delay: {actual_delay:.2f}s")
+                    logger.debug(f"Currently processing {current_task_count} messages, poll delay: {current_task_count  :.2f}s")
 
                 # Check for new messages in groups that aren't currently locked
                 group_name, message, message_type = await self.check_messages(group_names)
