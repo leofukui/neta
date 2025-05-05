@@ -35,7 +35,7 @@ class WhatsAppUI:
         self.image_download_delay = float(os.getenv("IMAGE_DOWNLOAD_DELAY", "2"))
         self.viewer_load_delay = float(os.getenv("VIEWER_LOAD_DELAY", "1"))
         self.viewer_close_delay = float(os.getenv("VIEWER_CLOSE_DELAY", "1"))
-        self.paste_delay = float(os.getenv("PASTE_DELAY", "0.5"))
+        self.paste_delay = float(os.getenv("PASTE_DELAY", "0.8"))
         self.os_type = os.getenv("OS_TYPE", "macos").lower()  # Default to macOS
 
         # Simple message tracking to avoid duplicates
@@ -440,7 +440,7 @@ class WhatsAppUI:
                     EC.presence_of_element_located(
                         (
                             By.CSS_SELECTOR,
-                            "div[aria-label='Type a message'], div[contenteditable='true'][data-tab='10']",
+                            "div[aria-label='Type a message']",
                         )
                     )
                 )
@@ -456,9 +456,19 @@ class WhatsAppUI:
                 # Short delay to ensure paste completed
                 time.sleep(self.paste_delay)
 
-                # Send message
-                input_field.send_keys(Keys.ENTER)
-                logger.info(f"Sent message to WhatsApp: {message[:50]}...")
+                # Look for send button after image is pasted
+                send_buttons = self.driver.find_elements(
+                    By.CSS_SELECTOR,
+                    "span[data-icon='send'], button[aria-label='Send'], div[aria-label='Send']",
+                )
+
+                if send_buttons:
+                    send_buttons[0].click()
+                else:
+                    # Try using Enter key instead
+                    input_field.send_keys(Keys.ENTER)
+
+                time.sleep(1)
 
             return True
         except Exception as e:
