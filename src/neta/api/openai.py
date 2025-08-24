@@ -135,7 +135,6 @@ class OpenAIClient(APIClient):
                         ],
                     }
                 ],
-                max_tokens=60,
             )
 
             # Extract response text
