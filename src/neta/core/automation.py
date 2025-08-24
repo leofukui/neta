@@ -198,12 +198,19 @@ class NetaAutomation:
         self.processing_messages[group_name].add(msg_id)
         try:
             logger.info(f"Started handling {message_type} message in {group_name}")
+
+            # Process message with AI (this is the potentially slow part)
             response = await self.process_message(
                 group_name, message, message_type
             )
+
             if response and (response[0] or response[1]):
-                await self.send_response(response, group_name)
-                logger.info(f"Completed handling message in {group_name}")
+                # Send response immediately after getting AI response
+                success = await self.send_response(response, group_name)
+                if success:
+                    logger.info(f"Completed handling message in {group_name}")
+                else:
+                    logger.error(f"Failed to send response to {group_name}")
             else:
                 logger.warning(
                     f"No valid response obtained for message in {group_name}"
@@ -221,19 +228,34 @@ class NetaAutomation:
 
         while not self.shutdown_event.is_set():
             try:
-                grp, msg, mtype = await self.check_messages(group_names)
-                if grp and (msg or mtype == "image"):
-                    task = asyncio.create_task(
-                        self.handle_message(grp, msg, mtype)
-                    )
-                    self.tasks.append(task)
-                    # prune done tasks
-                    self.tasks = [t for t in self.tasks if not t.done()]
+                # Check each group sequentially - one at a time
+                for group_name in group_names:
+                    # Check for new messages in this specific group
+                    result = await self.check_messages([group_name])
+
+                    if result[0] and (result[1] or result[2] == "image"):
+                        logger.info(f"Found new message in {group_name}, processing...")
+
+                        # Process this message and wait for AI response
+                        task = asyncio.create_task(
+                            self.handle_message(group_name, result[1], result[2])
+                        )
+                        self.tasks.append(task)
+
+                        # Wait for this specific message to complete before moving to next group
+                        await task
+                        logger.info(f"Completed processing message in {group_name}, moving to next group...")
+
+                    # Small delay between checking groups
+                    await asyncio.sleep(0.5)
 
                 cleanup_counter += 1
                 if cleanup_counter >= 120:
                     await self.cleanup_temp_files()
                     cleanup_counter = 0
+
+                # Prune done tasks
+                self.tasks = [t for t in self.tasks if not t.done()]
 
                 # throttle poll
                 await asyncio.sleep(self.config.loop_interval_delay)
