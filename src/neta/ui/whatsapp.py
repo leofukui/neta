@@ -277,7 +277,7 @@ class WhatsAppUI:
 
                     # Reduced wait time for messages to load
                     try:
-                        WebDriverWait(self.driver, 2).until(
+                        WebDriverWait(self.driver, 0.6).until(
                             EC.presence_of_element_located((By.CSS_SELECTOR, "div.message-in, div.message-out"))
                         )
                     except TimeoutException:

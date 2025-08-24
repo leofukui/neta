@@ -298,7 +298,7 @@ class BrowserManager:
                     ]
                     for selector in selectors:
                         try:
-                            WebDriverWait(self.driver, 5).until(
+                            WebDriverWait(self.driver, 0.3).until(
                                 EC.presence_of_element_located((By.CSS_SELECTOR, selector))
                             )
                             if "web.whatsapp.com" in current_url:
