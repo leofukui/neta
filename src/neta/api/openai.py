@@ -24,7 +24,6 @@ class OpenAIClient(APIClient):
             **kwargs: Additional configuration parameters
         """
         self.api_key = api_key
-        self.max_tokens = kwargs.get("max_tokens", 700)
         self.temperature = kwargs.get("temperature", 0.7)
         self.max_history_messages = 10
         self.conversation_history = []
@@ -68,7 +67,6 @@ class OpenAIClient(APIClient):
             response = self.client.chat.completions.create(
                 model=model,
                 messages=self.conversation_history,  # Use full conversation history
-                max_tokens=self.max_tokens,
                 temperature=self.temperature,
             )
 
