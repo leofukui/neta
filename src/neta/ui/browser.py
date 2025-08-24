@@ -57,7 +57,6 @@ class BrowserManager:
         self.tab_urls["WhatsApp"] = whatsapp_url
         self.tab_titles["WhatsApp"] = "WhatsApp"
         logger.info("Opened WhatsApp Web tab")
-        time.sleep(3)
 
         # Open AI platform tabs
         for group, ai_config in ai_mappings.items():

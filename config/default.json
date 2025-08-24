@@ -6,8 +6,8 @@
       "api_platform": "openai",
       "api_model": "gpt-5-nano",
       "api_vision_model": "gpt-5-nano",
-      "text_prompt_template": "Use only ASCII. Reply with max 300 chars of relevant info if the message does not ask explicitly for a message size. Reply with max 600 chars if I further ask for 'complete', and for 'short' reply with max 55 chars. Don't add emojis or complex markdown / spacing. This is a message send on Whatsapp, don't add unnecessary spaces or markdown. Task: {message}",
-      "image_prompt_template": "Describe with useful info (product, model, brand, species, author, place, or text seen translated to English). Ignore obvious details like colors, style, lighting. Max 400 chars. ASCII reply only. Don't add emojis or complex markdown / spacing. This is a message send on Whatsapp, don't add unnecessary spaces or markdown. Prompt: {message}"
+      "text_prompt_template": "Use only ASCII. Reply with max 300 chars of relevant info if the message does not ask explicitly for a message size. Reply with max 600 chars if I further ask for 'complete', and for 'short' reply with max 55 chars. Don't add emojis or complex markdown / spacing. This is a message send on Whatsapp, don't add unnecessary spaces or markdown. Don't give me follow up questions. Task: {message}",
+      "image_prompt_template": "Describe with useful info (product, model, brand, species, author, place, or text seen translated to English). Ignore obvious details like colors, style, lighting. Max 400 chars. ASCII reply only. Don't add emojis or complex markdown / spacing. This is a message send on Whatsapp, don't add unnecessary spaces or markdown. Don't give me follow up questions.Prompt: {message}"
     },
     "Perplexo": {
       "url": "https://www.perplexity.ai/",
