@@ -3,46 +3,38 @@
     "Capivara": {
       "url": "https://chat.openai.com/",
       "tab_name": "ChatGPT",
-      "input_selector": "#prompt-textarea",
-      "response_selector": ".\\@thread-xl\\/thread\\:pt-header-height article div[data-message-author-role='assistant']",
       "api_platform": "openai",
-      "api_model": "chatgpt-4o-latest",
-      "api_vision_model": "chatgpt-4o-latest",
-      "text_prompt_template": "Use only ASCII. Reply with max 300 chars of relevant info if the message does not ask explicitly for a message size. Reply with max 600 chars if it asks for 'complete', and for 'short' reply with max 55 chars. Don't reply with the response style. Do not combine them. Task: {message}",
-      "image_prompt_template": "Describe with useful info (product, model, brand, species, author, place, or text seen translated to English). Ignore colours, style, lighting. Max 400 chars. ASCII only. Prompt: {message}"
+      "api_model": "gpt-5-nano",
+      "api_vision_model": "gpt-5-nano",
+      "text_prompt_template": "Use only ASCII. Reply with max 300 chars of relevant info if the message does not ask explicitly for a message size. Reply with max 600 chars if it asks for 'complete', and for 'short' reply with max 55 chars. Don't add emojis or complex markdown / spacing. This is a message send on Whatsapp, don't add unnecessary spaces or markdown. Task: {message}",
+      "image_prompt_template": "Describe with useful info (product, model, brand, species, author, place, or text seen translated to English). Ignore obvious details like colors, style, lighting. Max 400 chars. ASCII reply only. Don't add emojis or complex markdown / spacing. This is a message send on Whatsapp, don't add unnecessary spaces or markdown. Prompt: {message}"
     },
     "Perplexo": {
       "url": "https://www.perplexity.ai/",
       "tab_name": "Perplexity",
-      "input_selector": "textarea[placeholder^='Ask']",
-      "response_selector": "div[id^='markdown-content-'] > div",
       "wait_seconds": 10,
       "api_platform": "perplexity",
       "api_model": "sonar",
       "api_vision_model": "sonar",
-      "text_prompt_template": "Use only ASCII. Reply with max 300 chars of relevant info if the message does not ask explicitly for a message size. Reply with max 600 chars if it asks for 'complete', and for 'short' reply with max 55 chars. Don't reply with the response style. Do not combine them. Task: {message}",
-      "image_prompt_template": "Describe with useful info (product, model, brand, species, author, place, or text seen translated to English). Ignore colours, style, lighting. Max 400 chars. ASCII only. Prompt: {message}"
+      "text_prompt_template": "Use only ASCII. Reply with max 300 chars of relevant info if the message does not ask explicitly for a message size. Reply with max 600 chars if it asks for 'complete', and for 'short' reply with max 55 chars. Don't add emojis or complex markdown / spacing. This is a message send on Whatsapp, don't add unnecessary spaces or markdown. Task: {message}",
+      "image_prompt_template": "Describe with useful info (product, model, brand, species, author, place, or text seen translated to English). Ignore obvious details like colors, style, lighting. Max 400 chars. ASCII reply only. Don't add emojis or complex markdown / spacing. This is a message send on Whatsapp, don't add unnecessary spaces or markdown. Prompt: {message}"
     },
     "Gemininas": {
       "url": "https://gemini.google.com/",
       "tab_name": "Gemini",
-      "input_selector": "div[data-placeholder='Ask Gemini']",
-      "response_selector": ".response-container:last-child .markdown",
       "api_platform": "gemini",
       "api_model": "gemini-2.0-flash-lite",
       "api_vision_model": "gemini-2.0-flash",
-      "text_prompt_template": "Use only ASCII. Reply with max 300 chars of relevant info if the message does not ask explicitly for a message size. Reply with max 600 chars if it asks for 'complete', and for 'short' reply with max 55 chars. Don't reply with the response style. Do not combine them. Task: {message}",
-      "image_prompt_template": "Describe with useful info (product, model, brand, species, author, place, or text seen translated to English). Ignore colours, style, lighting. Max 400 chars. ASCII only. Prompt: {message}"
+      "text_prompt_template": "Use only ASCII. Reply with max 300 chars of relevant info if the message does not ask explicitly for a message size. Reply with max 600 chars if it asks for 'complete', and for 'short' reply with max 55 chars. Don't add emojis or complex markdown / spacing. This is a message send on Whatsapp, don't add unnecessary spaces or markdown. Task: {message}",
+      "image_prompt_template": "Describe with useful info (product, model, brand, species, author, place, or text seen translated to English). Ignore obvious details like colors, style, lighting. Max 400 chars. ASCII reply only. Don't add emojis or complex markdown / spacing. This is a message send on Whatsapp, don't add unnecessary spaces or markdown. Prompt: {message}"
     },
     "VanDog": {
       "url": "https://gemini.google.com/",
       "tab_name": "Gemini",
-      "input_selector": "div[data-placeholder='Ask Gemini']",
-      "response_selector": ".response-container:last-child .markdown",
       "api_platform": "gemini",
-      "api_model": "gemini-2.0-flash-lite",
-      "api_vision_model": "gemini-2.0-flash-lite",
-      "api_image_model": "imagen-3.0-generate-002",
+      "api_model": "gemini-2.5-flash-lite",
+      "api_vision_model": "gemini-2.5-flash-lite",
+      "api_image_model": "imagen-4.0-generate-001",
       "enable_image_generation": true,
       "image_temperature": 0.9,
       "text_prompt_template": "{message}",
@@ -51,24 +43,20 @@
     "Birdo": {
       "url": "https://grok.com/",
       "tab_name": "Grok",
-      "input_selector": "textarea[aria-label^='Ask']",
-      "response_selector": ".message-bubble",
       "api_platform": "grok",
-      "api_model": "grok-3-mini-beta",
-      "api_vision_model": "grok-2-vision-latest",
-      "text_prompt_template": "Use only ASCII. Reply with max 300 chars of relevant info if the message does not ask explicitly for a message size. Reply with max 600 chars if it asks for 'complete', and for 'short' reply with max 55 chars. Don't reply with the response style. Do not combine them. Task: {message}",
-      "image_prompt_template": "Describe with useful info (product, model, brand, species, author, place, or text seen translated to English). Ignore colours, style, lighting. Max 400 chars. ASCII only. Prompt: {message}"
+      "api_model": "grok-3-mini",
+      "api_vision_model": "grok-4-0709",
+      "text_prompt_template": "Use only ASCII. Reply with max 300 chars of relevant info if the message does not ask explicitly for a message size. Reply with max 600 chars if it asks for 'complete', and for 'short' reply with max 55 chars. Don't add emojis or complex markdown / spacing. This is a message send on Whatsapp, don't add unnecessary spaces or markdown. Task: {message}",
+      "image_prompt_template": "Describe with useful info (product, model, brand, species, author, place, or text seen translated to English). Ignore obvious details like colors, style, lighting. Max 400 chars. ASCII reply only. Don't add emojis or complex markdown / spacing. This is a message send on Whatsapp, don't add unnecessary spaces or markdown. Prompt: {message}"
     },
     "Claudio": {
       "url": "https://claude.ai/",
       "tab_name": "Claude",
-      "input_selector": "p[data-placeholder='How can I help you today?'], p[data-placeholder='Reply to Claude...']",
-      "response_selector": "div[data-is-streaming]",
       "api_platform": "claude",
-      "api_model": "claude-3-7-sonnet-latest",
-      "api_vision_model": "claude-3-7-sonnet-latest",
-      "text_prompt_template": "Use only ASCII. Reply with max 300 chars of relevant info if the message does not ask explicitly for a message size. Reply with max 600 chars if it asks for 'complete', and for 'short' reply with max 55 chars. Don't reply with the response style. Do not combine them. Task: {message}",
-      "image_prompt_template": "Describe with useful info (product, model, brand, species, author, place, or text seen translated to English). Ignore colours, style, lighting. Max 400 chars. ASCII only. Prompt: {message}"
+      "api_model": "claude-sonnet-4-0",
+      "api_vision_model": "claude-sonnet-4-0",
+      "text_prompt_template": "Use only ASCII. Reply with max 300 chars of relevant info if the message does not ask explicitly for a message size. Reply with max 600 chars if it asks for 'complete', and for 'short' reply with max 55 chars. Don't add emojis or complex markdown / spacing. This is a message send on Whatsapp, don't add unnecessary spaces or markdown. Task: {message}",
+      "image_prompt_template": "Describe with useful info (product, model, brand, species, author, place, or text seen translated to English). Ignore obvious details like colors, style, lighting. Max 400 chars. ASCII reply only. Don't add emojis or complex markdown / spacing. This is a message send on Whatsapp, don't add unnecessary spaces or markdown. Prompt: {message}"
     }
   },
   "ignored_contacts": [
