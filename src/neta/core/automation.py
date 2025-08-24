@@ -120,6 +120,25 @@ class NetaAutomation:
                     logger.error("Failed to switch to WhatsApp tab")
                     return None, None, None
 
+                # Use ultra-fast batch preview check for all groups at once
+                batch_previews = await self.loop.run_in_executor(
+                    None,
+                    lambda: self.whatsapp_ui.get_batch_chat_previews(group_names)
+                )
+
+                # Check if any group has new messages
+                for group_name, has_new, message_preview, message_type in batch_previews:
+                    if has_new:
+                        logger.info(f"Batch preview detected new message in {group_name}, switching to detailed check")
+                        # Now do detailed check for this specific group
+                        return await self.loop.run_in_executor(
+                            None,
+                            lambda: self.whatsapp_ui.get_new_messages(
+                                [group_name], self.message_cache
+                            ),
+                        )
+
+                # If no batch preview found, do full check as fallback
                 return await self.loop.run_in_executor(
                     None,
                     lambda: self.whatsapp_ui.get_new_messages(
@@ -246,8 +265,8 @@ class NetaAutomation:
                         await task
                         logger.info(f"Completed processing message in {group_name}, moving to next group...")
 
-                    # Small delay between checking groups
-                    await asyncio.sleep(0.1)
+                    # Minimal delay between checking groups - reduced for faster scanning
+                    await asyncio.sleep(0.01)
 
                 cleanup_counter += 1
                 if cleanup_counter >= 120:
@@ -257,8 +276,8 @@ class NetaAutomation:
                 # Prune done tasks
                 self.tasks = [t for t in self.tasks if not t.done()]
 
-                # throttle poll
-                await asyncio.sleep(self.config.loop_interval_delay)
+                # Minimal throttle poll - reduced for faster response
+                await asyncio.sleep(max(0.1, self.config.loop_interval_delay * 0.5))
 
             except asyncio.CancelledError:
                 logger.info("Message poller cancelled")

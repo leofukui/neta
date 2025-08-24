@@ -43,7 +43,7 @@ class WhatsAppUI:
     def select_chat(self, group_name):
         """
         Select or verify the specified chat.
-        Using the exact same implementation as original.
+        Optimized version for faster chat selection.
 
         Args:
             group_name: Name of the WhatsApp group
@@ -53,12 +53,27 @@ class WhatsAppUI:
         """
         try:
             if self.current_chat != group_name:
-                # Find and click the chat with the given group name
-                chat_elements = self.driver.find_elements(By.CSS_SELECTOR, "div[role='listitem']")
+                # Use more specific selector to find chats faster
+                chat_elements = self.driver.find_elements(By.CSS_SELECTOR, "div[role='listitem'] div[data-testid='cell-']")
+                if not chat_elements:
+                    # Fallback to original selector if specific one doesn't work
+                    chat_elements = self.driver.find_elements(By.CSS_SELECTOR, "div[role='listitem']")
+
                 for chat in chat_elements:
                     try:
-                        title_element = chat.find_element(By.CSS_SELECTOR, "span[title]")
-                        chat_title = title_element.get_attribute("title")
+                        # Try multiple selectors for title to be more robust
+                        title_selectors = ["span[title]", "div[title]", "div[data-testid='cell-title'] span"]
+                        chat_title = None
+
+                        for selector in title_selectors:
+                            try:
+                                title_element = chat.find_element(By.CSS_SELECTOR, selector)
+                                chat_title = title_element.get_attribute("title")
+                                if chat_title:
+                                    break
+                            except NoSuchElementException:
+                                continue
+
                         if chat_title == group_name:
                             chat.click()
                             self.current_chat = group_name
@@ -92,10 +107,146 @@ class WhatsAppUI:
             logger.error(f"Error checking WhatsApp: {e}")
             return False
 
+    def get_chat_preview_info(self, group_name):
+        """
+        Get preview information about a chat without switching to it.
+        This is much faster than switching chats.
+
+        Args:
+            group_name: Name of the WhatsApp group
+
+        Returns:
+            Tuple of (has_new_message, message_preview, message_type) or (False, None, None)
+        """
+        try:
+            # Find the chat in the list without clicking
+            chat_elements = self.driver.find_elements(By.CSS_SELECTOR, "div[role='listitem'] div[data-testid='cell-']")
+            if not chat_elements:
+                chat_elements = self.driver.find_elements(By.CSS_SELECTOR, "div[role='listitem']")
+
+            for chat in chat_elements:
+                try:
+                    # Get chat title
+                    title_selectors = ["span[title]", "div[title]", "div[data-testid='cell-title'] span"]
+                    chat_title = None
+
+                    for selector in title_selectors:
+                        try:
+                            title_element = chat.find_element(By.CSS_SELECTOR, selector)
+                            chat_title = title_element.get_attribute("title")
+                            if chat_title:
+                                break
+                        except NoSuchElementException:
+                            continue
+
+                    if chat_title == group_name:
+                        # Check for message preview without switching
+                        try:
+                            # Look for last message preview
+                            preview_element = chat.find_element(By.CSS_SELECTOR, "div[data-testid='last-msg-status'], span[data-testid='last-msg-status'], div[data-testid='cell-secondary']")
+                            if preview_element:
+                                preview_text = preview_element.text.strip()
+                                if preview_text and not preview_text.startswith("You"):
+                                    # Check if this is a new message (not cached)
+                                    # Note: message_cache is passed from the calling method
+                                    return True, preview_text, "text"
+                        except NoSuchElementException:
+                            pass
+
+                        # Check for unread indicator
+                        try:
+                            unread_badge = chat.find_element(By.CSS_SELECTOR, "span[data-testid='icon-unread-count'], div[data-testid='icon-unread-count']")
+                            if unread_badge:
+                                return True, "unread", "unread"
+                        except NoSuchElementException:
+                            pass
+
+                        break
+                except NoSuchElementException:
+                    continue
+
+            return False, None, None
+        except Exception as e:
+            logger.error(f"Error getting chat preview for {group_name}: {e}")
+            return False, None, None
+
+    def get_batch_chat_previews(self, group_names):
+        """
+        Get preview information for multiple chats at once without switching.
+        This is the fastest way to check multiple groups.
+
+        Args:
+            group_names: List of WhatsApp group names to check
+
+        Returns:
+            List of tuples: [(group_name, has_new_message, message_preview, message_type), ...]
+        """
+        try:
+            results = []
+            # Find all chats in the list at once
+            chat_elements = self.driver.find_elements(By.CSS_SELECTOR, "div[role='listitem'] div[data-testid='cell-']")
+            if not chat_elements:
+                chat_elements = self.driver.find_elements(By.CSS_SELECTOR, "div[role='listitem']")
+
+            for chat in chat_elements:
+                try:
+                    # Get chat title
+                    title_selectors = ["span[title]", "div[title]", "div[data-testid='cell-title'] span"]
+                    chat_title = None
+
+                    for selector in title_selectors:
+                        try:
+                            title_element = chat.find_element(By.CSS_SELECTOR, selector)
+                            chat_title = title_element.get_attribute("title")
+                            if chat_title:
+                                break
+                        except NoSuchElementException:
+                            continue
+
+                    if chat_title in group_names:
+                        has_new = False
+                        message_preview = None
+                        message_type = None
+
+                        # Check for unread indicator first (fastest)
+                        try:
+                            unread_badge = chat.find_element(By.CSS_SELECTOR, "span[data-testid='icon-unread-count'], div[data-testid='icon-unread-count']")
+                            if unread_badge:
+                                has_new = True
+                                message_type = "unread"
+                        except NoSuchElementException:
+                            pass
+
+                        # Check for message preview if no unread badge
+                        if not has_new:
+                            try:
+                                preview_element = chat.find_element(By.CSS_SELECTOR, "div[data-testid='last-msg-status'], span[data-testid='last-msg-status'], div[data-testid='cell-secondary']")
+                                if preview_element:
+                                    preview_text = preview_element.text.strip()
+                                    if preview_text and not preview_text.startswith("You"):
+                                        has_new = True
+                                        message_preview = preview_text
+                                        message_type = "text"
+                            except NoSuchElementException:
+                                pass
+
+                        results.append((chat_title, has_new, message_preview, message_type))
+
+                        # Early exit if we found all groups
+                        if len(results) == len(group_names):
+                            break
+
+                except NoSuchElementException:
+                    continue
+
+            return results
+        except Exception as e:
+            logger.error(f"Error getting batch chat previews: {e}")
+            return []
+
     def get_new_messages(self, group_names, message_cache):
         """
         Check for new messages in WhatsApp groups.
-        Maintaining original implementation with minor additions.
 
         Args:
             group_names: List of WhatsApp group names to check
@@ -111,23 +262,32 @@ class WhatsAppUI:
                 logger.error("Not on WhatsApp page when checking for messages")
                 return None, None, None
 
-            # Wait for the chat list to load
+            # Wait for the chat list to load (only once)
             WebDriverWait(self.driver, 10).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, "div[role='listitem']"))
             )
 
             # Check each configured group
             for group_name in group_names:
-                if not self.select_chat(group_name):
-                    logger.warning(f"Skipping group {group_name} due to selection failure")
-                    continue
+                # Quick check: only select chat if we're not already in it
+                if self.current_chat != group_name:
+                    if not self.select_chat(group_name):
+                        logger.warning(f"Skipping group {group_name} due to selection failure")
+                        continue
 
-                # Wait for messages to load
-                WebDriverWait(self.driver, 5).until(
-                    EC.presence_of_element_located((By.CSS_SELECTOR, "div.message-in, div.message-out"))
-                )
+                    # Reduced wait time for messages to load
+                    try:
+                        WebDriverWait(self.driver, 2).until(
+                            EC.presence_of_element_located((By.CSS_SELECTOR, "div.message-in, div.message-out"))
+                        )
+                    except TimeoutException:
+                        logger.debug(f"Timeout waiting for messages in {group_name}, continuing to next group")
+                        continue
+                else:
+                    # We're already in this chat, no need to wait for messages to load
+                    logger.debug(f"Already in chat {group_name}, checking messages directly")
 
-                # Get all message containers
+                # Get all message containers with optimized selector
                 message_containers = self.driver.find_elements(By.CSS_SELECTOR, "div.message-in, div.message-out")
                 if not message_containers:
                     logger.debug(f"No messages found in {group_name}")
