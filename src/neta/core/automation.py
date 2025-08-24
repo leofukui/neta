@@ -247,7 +247,7 @@ class NetaAutomation:
                         logger.info(f"Completed processing message in {group_name}, moving to next group...")
 
                     # Small delay between checking groups
-                    await asyncio.sleep(0.5)
+                    await asyncio.sleep(0.1)
 
                 cleanup_counter += 1
                 if cleanup_counter >= 120:
